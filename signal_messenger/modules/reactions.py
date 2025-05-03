@@ -1,9 +1,10 @@
 """Reactions module for the Signal Messenger Python API."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 import aiohttp
 
+from signal_messenger.models import Reaction, StatusResponse
 from signal_messenger.utils import make_request
 
 
@@ -31,7 +32,7 @@ class ReactionsModule:
         target_author: str,
         target_timestamp: int,
         remove: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> StatusResponse:
         """Send a reaction to a message.
 
         Args:
@@ -52,11 +53,12 @@ class ReactionsModule:
             "targetTimestamp": target_timestamp,
             "remove": remove,
         }
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return StatusResponse(**response)
 
     async def get_reactions(
         self, number: str, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Reaction]:
         """Get reactions for a phone number.
 
         Args:
@@ -71,15 +73,16 @@ class ReactionsModule:
         if limit is not None:
             params["limit"] = limit
         response = await make_request(self._module_session, "GET", url, params=params)
+
         if isinstance(response, dict) and "reactions" in response:
-            return response["reactions"]
+            return [Reaction(**reaction) for reaction in response["reactions"]]
         elif isinstance(response, list):
-            return response
-        return [response]
+            return [Reaction(**reaction) for reaction in response]
+        return [Reaction(**response)]
 
     async def get_message_reactions(
         self, number: str, message_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Reaction]:
         """Get reactions for a specific message.
 
         Args:
@@ -91,13 +94,14 @@ class ReactionsModule:
         """
         url = f"{self.base_url}/v1/reactions/{number}/messages/{message_id}"
         response = await make_request(self._module_session, "GET", url)
-        if isinstance(response, dict) and "reactions" in response:
-            return response["reactions"]
-        elif isinstance(response, list):
-            return response
-        return [response]
 
-    async def delete_reaction(self, number: str, reaction_id: str) -> Dict[str, Any]:
+        if isinstance(response, dict) and "reactions" in response:
+            return [Reaction(**reaction) for reaction in response["reactions"]]
+        elif isinstance(response, list):
+            return [Reaction(**reaction) for reaction in response]
+        return [Reaction(**response)]
+
+    async def delete_reaction(self, number: str, reaction_id: str) -> StatusResponse:
         """Delete a reaction.
 
         Args:
@@ -108,4 +112,5 @@ class ReactionsModule:
             The response containing the reaction deletion information.
         """
         url = f"{self.base_url}/v1/reactions/{number}/{reaction_id}"
-        return await make_request(self._module_session, "DELETE", url)
+        response = await make_request(self._module_session, "DELETE", url)
+        return StatusResponse(**response)

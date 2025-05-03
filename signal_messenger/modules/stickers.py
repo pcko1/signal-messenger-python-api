@@ -1,9 +1,10 @@
 """Stickers module for the Signal Messenger Python API."""
 
-from typing import Any, BinaryIO, Dict, List, Optional, Union
+from typing import Any, BinaryIO, List, Optional, Union
 
 import aiohttp
 
+from signal_messenger.models import StatusResponse, Sticker, StickerPack
 from signal_messenger.utils import make_request
 
 
@@ -23,7 +24,7 @@ class StickersModule:
         self.base_url = base_url
         self._module_session = session
 
-    async def get_sticker_packs(self, number: str) -> List[Dict[str, Any]]:
+    async def get_sticker_packs(self, number: str) -> List[StickerPack]:
         """Get all sticker packs for a phone number.
 
         Args:
@@ -34,13 +35,18 @@ class StickersModule:
         """
         url = f"{self.base_url}/v1/stickers/{number}"
         response = await make_request(self._module_session, "GET", url)
-        if isinstance(response, dict) and "stickers" in response:
-            return response["stickers"]
-        elif isinstance(response, list):
-            return response
-        return [response]
 
-    async def get_sticker_pack(self, number: str, pack_id: str) -> Dict[str, Any]:
+        sticker_packs = []
+        if isinstance(response, dict) and "stickers" in response:
+            sticker_packs = response["stickers"]
+        elif isinstance(response, list):
+            sticker_packs = response
+        else:
+            sticker_packs = [response]
+
+        return [StickerPack(**pack) for pack in sticker_packs]
+
+    async def get_sticker_pack(self, number: str, pack_id: str) -> StickerPack:
         """Get a specific sticker pack.
 
         Args:
@@ -51,11 +57,12 @@ class StickersModule:
             The sticker pack details.
         """
         url = f"{self.base_url}/v1/stickers/{number}/{pack_id}"
-        return await make_request(self._module_session, "GET", url)
+        response = await make_request(self._module_session, "GET", url)
+        return StickerPack(**response)
 
     async def install_sticker_pack(
         self, number: str, pack_id: str, pack_key: str
-    ) -> Dict[str, Any]:
+    ) -> StickerPack:
         """Install a sticker pack.
 
         Args:
@@ -64,13 +71,14 @@ class StickersModule:
             pack_key: The sticker pack key.
 
         Returns:
-            The response containing the sticker pack installation information.
+            The installed sticker pack.
         """
         url = f"{self.base_url}/v1/stickers/{number}"
         data = {"packId": pack_id, "packKey": pack_key}
-        return await make_request(self._module_session, "POST", url, data=data)
+        response = await make_request(self._module_session, "POST", url, data=data)
+        return StickerPack(**response)
 
-    async def uninstall_sticker_pack(self, number: str, pack_id: str) -> Dict[str, Any]:
+    async def uninstall_sticker_pack(self, number: str, pack_id: str) -> StatusResponse:
         """Uninstall a sticker pack.
 
         Args:
@@ -81,7 +89,8 @@ class StickersModule:
             The response containing the sticker pack uninstallation information.
         """
         url = f"{self.base_url}/v1/stickers/{number}/{pack_id}"
-        return await make_request(self._module_session, "DELETE", url)
+        response = await make_request(self._module_session, "DELETE", url)
+        return StatusResponse(**response)
 
     async def upload_sticker_pack(
         self,
@@ -89,8 +98,8 @@ class StickersModule:
         title: str,
         author: str,
         cover: Union[bytes, BinaryIO],
-        stickers: List[Dict[str, Union[bytes, BinaryIO, str]]],
-    ) -> Dict[str, Any]:
+        stickers: List[dict],
+    ) -> StickerPack:
         """Upload a new sticker pack.
 
         Args:
@@ -101,7 +110,7 @@ class StickersModule:
             stickers: The list of stickers, each with 'image' and 'emoji' keys.
 
         Returns:
-            The response containing the sticker pack upload information.
+            The uploaded sticker pack information.
         """
         url = f"{self.base_url}/v1/stickers/{number}/upload"
 
@@ -121,4 +130,5 @@ class StickersModule:
         async with self._module_session.post(url, data=data) as response:
             from signal_messenger.utils import handle_response
 
-            return await handle_response(response)
+            response_data = await handle_response(response)
+            return StickerPack(**response_data)
