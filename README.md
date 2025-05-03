@@ -194,7 +194,7 @@ asyncio.run(main())
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/signal-messenger-python-api.git
+git clone https://github.com/pcko1/signal-messenger-python-api.git
 cd signal-messenger-python-api
 
 # Install dependencies
