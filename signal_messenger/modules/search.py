@@ -1,9 +1,10 @@
 """Search module for the Signal Messenger Python API."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 
+from signal_messenger.models import Contact, Group, Message, SearchResult
 from signal_messenger.utils import make_request
 
 
@@ -25,7 +26,7 @@ class SearchModule:
 
     async def search_messages(
         self, number: str, query: str, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Message]:
         """Search messages for a phone number.
 
         Args:
@@ -34,22 +35,26 @@ class SearchModule:
             limit: The maximum number of messages to return (optional).
 
         Returns:
-            A list of matching messages.
+            A list of matching Message objects.
         """
         url = f"{self.base_url}/v1/search/{number}/messages"
         params = {"query": query}
         if limit is not None:
             params["limit"] = str(limit)
         response = await make_request(self._module_session, "GET", url, params=params)
+
+        messages = []
         if isinstance(response, dict) and "messages" in response:
-            return response["messages"]
+            messages = [Message(**message) for message in response["messages"]]
         elif isinstance(response, list):
-            return response
-        return [response]
+            messages = [Message(**message) for message in response]
+        else:
+            messages = [Message(**response)]
+        return messages
 
     async def search_contacts(
         self, number: str, query: str, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Contact]:
         """Search contacts for a phone number.
 
         Args:
@@ -58,22 +63,26 @@ class SearchModule:
             limit: The maximum number of contacts to return (optional).
 
         Returns:
-            A list of matching contacts.
+            A list of matching Contact objects.
         """
         url = f"{self.base_url}/v1/search/{number}/contacts"
         params = {"query": query}
         if limit is not None:
             params["limit"] = str(limit)
         response = await make_request(self._module_session, "GET", url, params=params)
+
+        contacts = []
         if isinstance(response, dict) and "contacts" in response:
-            return response["contacts"]
+            contacts = [Contact(**contact) for contact in response["contacts"]]
         elif isinstance(response, list):
-            return response
-        return [response]
+            contacts = [Contact(**contact) for contact in response]
+        else:
+            contacts = [Contact(**response)]
+        return contacts
 
     async def search_groups(
         self, number: str, query: str, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Group]:
         """Search groups for a phone number.
 
         Args:
@@ -82,22 +91,26 @@ class SearchModule:
             limit: The maximum number of groups to return (optional).
 
         Returns:
-            A list of matching groups.
+            A list of matching Group objects.
         """
         url = f"{self.base_url}/v1/search/{number}/groups"
         params = {"query": query}
         if limit is not None:
             params["limit"] = str(limit)
         response = await make_request(self._module_session, "GET", url, params=params)
+
+        groups = []
         if isinstance(response, dict) and "groups" in response:
-            return response["groups"]
+            groups = [Group(**group) for group in response["groups"]]
         elif isinstance(response, list):
-            return response
-        return [response]
+            groups = [Group(**group) for group in response]
+        else:
+            groups = [Group(**response)]
+        return groups
 
     async def search_all(
         self, number: str, query: str, limit: Optional[int] = None
-    ) -> Dict[str, List[Dict[str, Any]]]:
+    ) -> SearchResult:
         """Search all entities for a phone number.
 
         Args:
@@ -106,7 +119,7 @@ class SearchModule:
             limit: The maximum number of results to return per entity type (optional).
 
         Returns:
-            A dictionary containing lists of matching messages, contacts, and groups.
+            A SearchResult object containing lists of matching messages, contacts, and groups.
         """
         url = f"{self.base_url}/v1/search/{number}"
         params = {"query": query}
@@ -114,14 +127,24 @@ class SearchModule:
             params["limit"] = str(limit)
         response = await make_request(self._module_session, "GET", url, params=params)
 
-        result = {"messages": [], "contacts": [], "groups": []}
+        result = {"query": query, "results": []}
 
-        if isinstance(response, dict):
-            if "messages" in response:
-                result["messages"] = response["messages"]
-            if "contacts" in response:
-                result["contacts"] = response["contacts"]
-            if "groups" in response:
-                result["groups"] = response["groups"]
+        # Process messages
+        messages = []
+        if isinstance(response, dict) and "messages" in response:
+            messages = [Message(**message) for message in response["messages"]]
+            result["messages"] = messages
 
-        return result
+        # Process contacts
+        contacts = []
+        if isinstance(response, dict) and "contacts" in response:
+            contacts = [Contact(**contact) for contact in response["contacts"]]
+            result["contacts"] = contacts
+
+        # Process groups
+        groups = []
+        if isinstance(response, dict) and "groups" in response:
+            groups = [Group(**group) for group in response["groups"]]
+            result["groups"] = groups
+
+        return SearchResult(**result)

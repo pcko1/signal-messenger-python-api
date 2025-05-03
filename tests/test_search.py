@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from signal_messenger.models import Contact, Group, Message, SearchResult
 from signal_messenger.modules.search import SearchModule
 
 
@@ -45,10 +46,12 @@ async def test_search_messages(search_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "msg1"
-        assert result[0]["message"] == "Hello, world!"
-        assert result[1]["id"] == "msg2"
-        assert result[1]["message"] == "Hello, Signal!"
+        assert isinstance(result[0], Message)
+        assert result[0].id == "msg1"
+        assert result[0].message == "Hello, world!"
+        assert isinstance(result[1], Message)
+        assert result[1].id == "msg2"
+        assert result[1].message == "Hello, Signal!"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -83,8 +86,9 @@ async def test_search_messages_with_limit(search_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["id"] == "msg1"
-        assert result[0]["message"] == "Hello, world!"
+        assert isinstance(result[0], Message)
+        assert result[0].id == "msg1"
+        assert result[0].message == "Hello, world!"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -123,10 +127,12 @@ async def test_search_contacts(search_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["number"] == "+0987654321"
-        assert result[0]["name"] == "John Doe"
-        assert result[1]["number"] == "+5555555555"
-        assert result[1]["name"] == "John Smith"
+        assert isinstance(result[0], Contact)
+        assert result[0].number == "+0987654321"
+        assert result[0].name == "John Doe"
+        assert isinstance(result[1], Contact)
+        assert result[1].number == "+5555555555"
+        assert result[1].name == "John Smith"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -160,8 +166,9 @@ async def test_search_contacts_with_limit(search_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["number"] == "+0987654321"
-        assert result[0]["name"] == "John Doe"
+        assert isinstance(result[0], Contact)
+        assert result[0].number == "+0987654321"
+        assert result[0].name == "John Doe"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -200,10 +207,12 @@ async def test_search_groups(search_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "group1"
-        assert result[0]["name"] == "Signal Group"
-        assert result[1]["id"] == "group2"
-        assert result[1]["name"] == "Another Signal Group"
+        assert isinstance(result[0], Group)
+        assert result[0].id == "group1"
+        assert result[0].name == "Signal Group"
+        assert isinstance(result[1], Group)
+        assert result[1].id == "group2"
+        assert result[1].name == "Another Signal Group"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -237,8 +246,9 @@ async def test_search_groups_with_limit(search_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["id"] == "group1"
-        assert result[0]["name"] == "Signal Group"
+        assert isinstance(result[0], Group)
+        assert result[0].id == "group1"
+        assert result[0].name == "Signal Group"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -285,16 +295,26 @@ async def test_search_all(search_module):
         result = await search_module.search_all("+1234567890", "Signal")
 
         # Verify the result
-        assert isinstance(result, dict)
-        assert "messages" in result
-        assert "contacts" in result
-        assert "groups" in result
-        assert len(result["messages"]) == 1
-        assert len(result["contacts"]) == 1
-        assert len(result["groups"]) == 1
-        assert result["messages"][0]["id"] == "msg1"
-        assert result["contacts"][0]["number"] == "+0987654321"
-        assert result["groups"][0]["id"] == "group1"
+        assert isinstance(result, SearchResult)
+        assert hasattr(result, "messages")
+        assert hasattr(result, "contacts")
+        assert hasattr(result, "groups")
+        assert result.query == "Signal"
+
+        # Check messages
+        assert len(result.messages) == 1
+        assert isinstance(result.messages[0], Message)
+        assert result.messages[0].id == "msg1"
+
+        # Check contacts
+        assert len(result.contacts) == 1
+        assert isinstance(result.contacts[0], Contact)
+        assert result.contacts[0].number == "+0987654321"
+
+        # Check groups
+        assert len(result.groups) == 1
+        assert isinstance(result.groups[0], Group)
+        assert result.groups[0].id == "group1"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -341,13 +361,13 @@ async def test_search_all_with_limit(search_module):
         result = await search_module.search_all("+1234567890", "Signal", limit=1)
 
         # Verify the result
-        assert isinstance(result, dict)
-        assert "messages" in result
-        assert "contacts" in result
-        assert "groups" in result
-        assert len(result["messages"]) == 1
-        assert len(result["contacts"]) == 1
-        assert len(result["groups"]) == 1
+        assert isinstance(result, SearchResult)
+        assert hasattr(result, "messages")
+        assert hasattr(result, "contacts")
+        assert hasattr(result, "groups")
+        assert len(result.messages) == 1
+        assert len(result.contacts) == 1
+        assert len(result.groups) == 1
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -371,13 +391,12 @@ async def test_search_all_empty_response(search_module):
         result = await search_module.search_all("+1234567890", "Signal")
 
         # Verify the result
-        assert isinstance(result, dict)
-        assert "messages" in result
-        assert "contacts" in result
-        assert "groups" in result
-        assert len(result["messages"]) == 0
-        assert len(result["contacts"]) == 0
-        assert len(result["groups"]) == 0
+        assert isinstance(result, SearchResult)
+        assert hasattr(result, "query")
+        assert result.query == "Signal"
+        assert not hasattr(result, "messages") or len(result.messages) == 0
+        assert not hasattr(result, "contacts") or len(result.contacts) == 0
+        assert not hasattr(result, "groups") or len(result.groups) == 0
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
