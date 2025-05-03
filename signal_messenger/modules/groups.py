@@ -1,6 +1,6 @@
 """Groups module for the Signal Messenger Python API."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 
@@ -79,7 +79,15 @@ class GroupsModule:
             return Group(id=group_id)
 
     async def create_group(
-        self, number: str, name: str, members: List[str], avatar: Optional[str] = None
+        self,
+        number: str,
+        name: str,
+        members: List[str],
+        description: Optional[str] = None,
+        avatar: Optional[str] = None,
+        expiration_time: Optional[int] = None,
+        group_link: Optional[str] = None,
+        permissions: Optional[Dict[str, str]] = None,
     ) -> Group:
         """Create a new group.
 
@@ -87,15 +95,29 @@ class GroupsModule:
             number: The registered phone number.
             name: The group name.
             members: The list of member phone numbers.
-            avatar: The avatar URL (optional).
+            description: The group description (optional).
+            avatar: The avatar URL or base64 data (optional).
+            expiration_time: Message expiration time in seconds (optional).
+            group_link: Group link setting: 'disabled', 'enabled', 'enabled-with-approval' (optional).
+            permissions: Group permissions settings, such as 'add_members' and 'edit_group' with values
+                         'only-admins' or 'every-member' (optional).
 
         Returns:
             The created group.
         """
         url = f"{self.base_url}/v1/groups/{number}"
         data = {"name": name, "members": members}
+        if description:
+            data["description"] = description
         if avatar:
-            data["avatar"] = avatar
+            data["base64_avatar"] = avatar
+        if expiration_time is not None:
+            data["expiration_time"] = expiration_time
+        if group_link:
+            data["group_link"] = group_link
+        if permissions:
+            data["permissions"] = permissions
+
         response = await make_request(self._module_session, "POST", url, data=data)
 
         if isinstance(response, dict):
@@ -118,6 +140,7 @@ class GroupsModule:
         name: Optional[str] = None,
         description: Optional[str] = None,
         avatar: Optional[str] = None,
+        expiration_time: Optional[int] = None,
     ) -> Group:
         """Update a group.
 
@@ -126,7 +149,8 @@ class GroupsModule:
             group_id: The group ID.
             name: The new group name (optional).
             description: The new group description (optional).
-            avatar: The new avatar URL (optional).
+            avatar: The new avatar URL or base64 data (optional).
+            expiration_time: The new message expiration time in seconds (optional).
 
         Returns:
             The updated group.
@@ -138,7 +162,10 @@ class GroupsModule:
         if description:
             data["description"] = description
         if avatar:
-            data["avatar"] = avatar
+            data["base64_avatar"] = avatar
+        if expiration_time is not None:
+            data["expiration_time"] = expiration_time
+
         response = await make_request(self._module_session, "PUT", url, data=data)
 
         if isinstance(response, dict):
@@ -175,7 +202,7 @@ class GroupsModule:
 
     async def add_members(
         self, number: str, group_id: str, members: List[str]
-    ) -> Group:
+    ) -> StatusResponse:
         """Add members to a group.
 
         Args:
@@ -184,26 +211,16 @@ class GroupsModule:
             members: The list of member phone numbers to add.
 
         Returns:
-            The updated group with new members.
+            Status response for the operation.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}/members"
         data = {"members": members}
         response = await make_request(self._module_session, "POST", url, data=data)
-
-        if isinstance(response, dict):
-            # Convert any non-string keys to strings
-            group_dict = {str(k): v for k, v in response.items()}
-            # Add the group_id if not in the response
-            if "id" not in group_dict:
-                group_dict["id"] = group_id
-            return Group(**group_dict)
-        else:
-            # Try to create a minimal Group object
-            return Group(id=group_id)
+        return StatusResponse(**response)
 
     async def remove_members(
         self, number: str, group_id: str, members: List[str]
-    ) -> Group:
+    ) -> StatusResponse:
         """Remove members from a group.
 
         Args:
@@ -212,24 +229,64 @@ class GroupsModule:
             members: The list of member phone numbers to remove.
 
         Returns:
-            The updated group without the removed members.
+            Status response for the operation.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}/members"
         data = {"members": members}
         response = await make_request(self._module_session, "DELETE", url, data=data)
+        return StatusResponse(**response)
 
-        if isinstance(response, dict):
-            # Convert any non-string keys to strings
-            group_dict = {str(k): v for k, v in response.items()}
-            # Add the group_id if not in the response
-            if "id" not in group_dict:
-                group_dict["id"] = group_id
-            return Group(**group_dict)
-        else:
-            # Try to create a minimal Group object
-            return Group(id=group_id)
+    async def add_admins(
+        self, number: str, group_id: str, admins: List[str]
+    ) -> StatusResponse:
+        """Add admins to a group.
 
-    async def join_group(self, number: str, group_id: str) -> Group:
+        Args:
+            number: The registered phone number.
+            group_id: The group ID.
+            admins: The list of phone numbers to promote to admin.
+
+        Returns:
+            Status response for the operation.
+        """
+        url = f"{self.base_url}/v1/groups/{number}/{group_id}/admins"
+        data = {"admins": admins}
+        response = await make_request(self._module_session, "POST", url, data=data)
+        return StatusResponse(**response)
+
+    async def remove_admins(
+        self, number: str, group_id: str, admins: List[str]
+    ) -> StatusResponse:
+        """Remove admins from a group.
+
+        Args:
+            number: The registered phone number.
+            group_id: The group ID.
+            admins: The list of phone numbers to demote from admin.
+
+        Returns:
+            Status response for the operation.
+        """
+        url = f"{self.base_url}/v1/groups/{number}/{group_id}/admins"
+        data = {"admins": admins}
+        response = await make_request(self._module_session, "DELETE", url, data=data)
+        return StatusResponse(**response)
+
+    async def block_group(self, number: str, group_id: str) -> StatusResponse:
+        """Block a group.
+
+        Args:
+            number: The registered phone number.
+            group_id: The group ID.
+
+        Returns:
+            Status response for the operation.
+        """
+        url = f"{self.base_url}/v1/groups/{number}/{group_id}/block"
+        response = await make_request(self._module_session, "POST", url)
+        return StatusResponse(**response)
+
+    async def join_group(self, number: str, group_id: str) -> StatusResponse:
         """Join a group.
 
         Args:
@@ -237,22 +294,27 @@ class GroupsModule:
             group_id: The group ID.
 
         Returns:
-            The joined group.
+            Status response for the operation.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}/join"
         response = await make_request(self._module_session, "POST", url)
+        return StatusResponse(**response)
 
-        if isinstance(response, dict):
-            # Convert any non-string keys to strings
-            group_dict = {str(k): v for k, v in response.items()}
-            # Add the group_id if not in the response
-            if "id" not in group_dict:
-                group_dict["id"] = group_id
-            return Group(**group_dict)
-        else:
-            # Try to create a minimal Group object
-            return Group(id=group_id)
+    async def quit_group(self, number: str, group_id: str) -> StatusResponse:
+        """Quit a group.
 
+        Args:
+            number: The registered phone number.
+            group_id: The group ID.
+
+        Returns:
+            Status response for the operation.
+        """
+        url = f"{self.base_url}/v1/groups/{number}/{group_id}/quit"
+        response = await make_request(self._module_session, "POST", url)
+        return StatusResponse(**response)
+
+    # Keeping this for backwards compatibility
     async def leave_group(self, number: str, group_id: str) -> StatusResponse:
         """Leave a group.
 
@@ -261,8 +323,6 @@ class GroupsModule:
             group_id: The group ID.
 
         Returns:
-            A status response containing the leave status, typically {"left": true}.
+            A status response containing the leave status.
         """
-        url = f"{self.base_url}/v1/groups/{number}/{group_id}/leave"
-        response = await make_request(self._module_session, "POST", url)
-        return StatusResponse(**response)
+        return await self.quit_group(number, group_id)

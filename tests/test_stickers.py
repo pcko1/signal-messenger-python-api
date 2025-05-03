@@ -41,9 +41,6 @@ async def test_get_sticker_packs(stickers_module):
         ]
     }
 
-    # Print the response data for debugging
-    print(f"Response data before mocking: {response_data}")
-
     # Create a mock that prints the response data when called
     async def mock_make_request(*args, **kwargs):
         print(f"Mock make_request called with args: {args}, kwargs: {kwargs}")

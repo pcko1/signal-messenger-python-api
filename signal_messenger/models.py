@@ -99,6 +99,27 @@ class AccountDetails(BaseModelWithDictAccess):
     registered: Optional[bool] = None
 
 
+class UsernameResponse(BaseModelWithDictAccess):
+    """Username response model."""
+
+    username: str
+    username_link: Optional[str] = None
+
+
+class AccountSettingsRequest(BaseModelWithDictAccess):
+    """Account settings request model."""
+
+    discoverable_by_number: Optional[bool] = None
+    share_number: Optional[bool] = None
+
+
+class RateLimitChallengeRequest(BaseModelWithDictAccess):
+    """Rate limit challenge request model."""
+
+    captcha: str
+    challenge_token: str
+
+
 # Device Models
 class DeviceType(str, Enum):
     """Device type enum."""

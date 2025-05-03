@@ -243,3 +243,139 @@ async def test_remove_pin(accounts_module):
             "DELETE",
             "http://localhost:8080/v1/accounts/+1234567890/pin",
         )
+
+
+@pytest.mark.asyncio
+async def test_set_username(accounts_module):
+    """Test the set_username method."""
+    # Mock response data
+    response_data = {
+        "username": "user.123",
+        "username_link": "https://signal.me/#eu/user.123",
+    }
+
+    # Mock the make_request function
+    make_request_mock = AsyncMock(return_value=response_data)
+    with patch("signal_messenger.modules.accounts.make_request", make_request_mock):
+        # Call the method
+        result = await accounts_module.set_username("+1234567890", "user")
+
+        # Verify the result
+        assert result["username"] == "user.123"
+        assert result["username_link"] == "https://signal.me/#eu/user.123"
+
+        # Verify the make_request call
+        make_request_mock.assert_called_once_with(
+            accounts_module._module_session,
+            "POST",
+            "http://localhost:8080/v1/accounts/+1234567890/username",
+            data={"username": "user"},
+        )
+
+
+@pytest.mark.asyncio
+async def test_remove_username(accounts_module):
+    """Test the remove_username method."""
+    # Mock response data
+    response_data = {"success": True, "message": "Username removed"}
+
+    # Mock the make_request function
+    make_request_mock = AsyncMock(return_value=response_data)
+    with patch("signal_messenger.modules.accounts.make_request", make_request_mock):
+        # Call the method
+        result = await accounts_module.remove_username("+1234567890")
+
+        # Verify the result
+        assert result["success"] is True
+        assert result["message"] == "Username removed"
+
+        # Verify the make_request call
+        make_request_mock.assert_called_once_with(
+            accounts_module._module_session,
+            "DELETE",
+            "http://localhost:8080/v1/accounts/+1234567890/username",
+        )
+
+
+@pytest.mark.asyncio
+async def test_solve_rate_limit_challenge(accounts_module):
+    """Test the solve_rate_limit_challenge method."""
+    # Mock response data
+    response_data = {"success": True, "message": "Challenge completed"}
+
+    # Mock the make_request function
+    make_request_mock = AsyncMock(return_value=response_data)
+    with patch("signal_messenger.modules.accounts.make_request", make_request_mock):
+        # Call the method
+        result = await accounts_module.solve_rate_limit_challenge(
+            "+1234567890", "signalcaptcha://captcha-token-value", "challenge-token-123"
+        )
+
+        # Verify the result
+        assert result["success"] is True
+        assert result["message"] == "Challenge completed"
+
+        # Verify the make_request call
+        make_request_mock.assert_called_once_with(
+            accounts_module._module_session,
+            "POST",
+            "http://localhost:8080/v1/accounts/+1234567890/rate-limit-challenge",
+            data={
+                "captcha": "signalcaptcha://captcha-token-value",
+                "challenge_token": "challenge-token-123",
+            },
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_account_settings(accounts_module):
+    """Test the update_account_settings method."""
+    # Mock response data
+    response_data = {"success": True, "message": "Account settings updated"}
+
+    # Mock the make_request function
+    make_request_mock = AsyncMock(return_value=response_data)
+    with patch("signal_messenger.modules.accounts.make_request", make_request_mock):
+        # Call the method
+        result = await accounts_module.update_account_settings(
+            "+1234567890", discoverable_by_number=True, share_number=False
+        )
+
+        # Verify the result
+        assert result["success"] is True
+        assert result["message"] == "Account settings updated"
+
+        # Verify the make_request call
+        make_request_mock.assert_called_once_with(
+            accounts_module._module_session,
+            "PUT",
+            "http://localhost:8080/v1/accounts/+1234567890/settings",
+            data={"discoverable_by_number": True, "share_number": False},
+        )
+
+
+@pytest.mark.asyncio
+async def test_update_account_settings_partial(accounts_module):
+    """Test the update_account_settings method with partial data."""
+    # Mock response data
+    response_data = {"success": True, "message": "Account settings updated"}
+
+    # Mock the make_request function
+    make_request_mock = AsyncMock(return_value=response_data)
+    with patch("signal_messenger.modules.accounts.make_request", make_request_mock):
+        # Call the method with only one parameter
+        result = await accounts_module.update_account_settings(
+            "+1234567890", discoverable_by_number=True
+        )
+
+        # Verify the result
+        assert result["success"] is True
+        assert result["message"] == "Account settings updated"
+
+        # Verify the make_request call
+        make_request_mock.assert_called_once_with(
+            accounts_module._module_session,
+            "PUT",
+            "http://localhost:8080/v1/accounts/+1234567890/settings",
+            data={"discoverable_by_number": True},
+        )

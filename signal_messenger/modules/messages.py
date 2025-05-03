@@ -39,6 +39,9 @@ class MessagesModule:
         attachments: Optional[List[str]] = None,
         mention_recipients: Optional[List[Dict[str, Any]]] = None,
         quote: Optional[Dict[str, Any]] = None,
+        text_mode: Optional[str] = None,
+        link_preview: Optional[Dict[str, Any]] = None,
+        sticker: Optional[str] = None,
     ) -> Message:
         """Send a message to one or more recipients.
 
@@ -46,9 +49,12 @@ class MessagesModule:
             number: The sender's phone number.
             message: The message text.
             recipients: The list of recipient phone numbers.
-            attachments: The list of attachment IDs (optional).
+            attachments: The list of attachment IDs or base64 encoded data (optional).
             mention_recipients: The list of mention recipients (optional).
             quote: The quote information (optional).
+            text_mode: The text mode, 'normal' or 'styled' (optional).
+            link_preview: Link preview information (optional).
+            sticker: Sticker ID (optional).
 
         Returns:
             The sent message object.
@@ -60,11 +66,25 @@ class MessagesModule:
             "recipients": recipients,
         }
         if attachments:
-            data["attachments"] = attachments
+            data["base64_attachments"] = attachments
         if mention_recipients:
-            data["mention"] = mention_recipients
+            data["mentions"] = mention_recipients
         if quote:
-            data["quote"] = quote
+            if "author" in quote:
+                data["quote_author"] = quote["author"]
+            if "message" in quote:
+                data["quote_message"] = quote["message"]
+            if "timestamp" in quote:
+                data["quote_timestamp"] = quote["timestamp"]
+            if "mentions" in quote:
+                data["quote_mentions"] = quote["mentions"]
+        if text_mode:
+            data["text_mode"] = text_mode
+        if link_preview:
+            data["link_preview"] = link_preview
+        if sticker:
+            data["sticker"] = sticker
+
         response = await make_request(self._module_session, "POST", url, data=data)
 
         # Create a Message object from the response
@@ -80,6 +100,41 @@ class MessagesModule:
 
         return Message(**msg_data)
 
+    async def show_typing_indicator(
+        self, number: str, recipient: str
+    ) -> StatusResponse:
+        """Show a typing indicator to a recipient.
+
+        Args:
+            number: The sender's phone number.
+            recipient: The recipient's phone number.
+
+        Returns:
+            A status response containing the typing indicator status.
+        """
+        url = f"{self.base_url}/v1/typing-indicator/{number}"
+        data = {"recipient": recipient}
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return StatusResponse(**response)
+
+    async def hide_typing_indicator(
+        self, number: str, recipient: str
+    ) -> StatusResponse:
+        """Hide a typing indicator from a recipient.
+
+        Args:
+            number: The sender's phone number.
+            recipient: The recipient's phone number.
+
+        Returns:
+            A status response containing the typing indicator status.
+        """
+        url = f"{self.base_url}/v1/typing-indicator/{number}"
+        data = {"recipient": recipient}
+        response = await make_request(self._module_session, "DELETE", url, data=data)
+        return StatusResponse(**response)
+
+    # Keeping this for backwards compatibility
     async def send_typing_indicator(
         self, number: str, recipient: str, stop: bool = False
     ) -> StatusResponse:
@@ -93,10 +148,10 @@ class MessagesModule:
         Returns:
             A status response containing the typing indicator status, typically {"sent": true}.
         """
-        url = f"{self.base_url}/v1/typing-indicator/{number}/{recipient}"
-        data = {"stop": stop}
-        response = await make_request(self._module_session, "PUT", url, data=data)
-        return StatusResponse(**response)
+        if stop:
+            return await self.hide_typing_indicator(number, recipient)
+        else:
+            return await self.show_typing_indicator(number, recipient)
 
     async def send_read_receipt(
         self, number: str, recipient: str, timestamps: List[int]
@@ -111,9 +166,13 @@ class MessagesModule:
         Returns:
             The receipt object.
         """
-        url = f"{self.base_url}/v1/receipts/{number}/{recipient}/read"
-        data = {"timestamps": timestamps}
-        response = await make_request(self._module_session, "PUT", url, data=data)
+        url = f"{self.base_url}/v1/receipts/{number}"
+        data = {
+            "receipt_type": "read",
+            "recipient": recipient,
+            "timestamp": timestamps[0] if timestamps else None,
+        }
+        response = await make_request(self._module_session, "POST", url, data=data)
         return Receipt(
             type=ReceiptType.READ,
             sender=number,
@@ -137,9 +196,13 @@ class MessagesModule:
         Returns:
             The receipt object.
         """
-        url = f"{self.base_url}/v1/receipts/{number}/{recipient}/viewed"
-        data = {"timestamps": timestamps}
-        response = await make_request(self._module_session, "PUT", url, data=data)
+        url = f"{self.base_url}/v1/receipts/{number}"
+        data = {
+            "receipt_type": "viewed",
+            "recipient": recipient,
+            "timestamp": timestamps[0] if timestamps else None,
+        }
+        response = await make_request(self._module_session, "POST", url, data=data)
         return Receipt(
             type=ReceiptType.VIEWED,
             sender=number,
