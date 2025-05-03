@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" width="200" alt="Signal Messenger Python API Logo">
+</p>
+
 # Signal Messenger Python API
 
 [![PyPI version](https://img.shields.io/pypi/v/signal-messenger-python-api.svg)](https://pypi.org/project/signal-messenger-python-api/)
