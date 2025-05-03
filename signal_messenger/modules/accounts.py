@@ -8,6 +8,7 @@ from signal_messenger.models import (
     AccountDetails,
     AccountRegistrationResponse,
     AccountVerificationResponse,
+    StatusResponse,
 )
 from signal_messenger.utils import make_request
 
@@ -81,7 +82,7 @@ class AccountsModule:
         number: str,
         registration_id: Optional[int] = None,
         pni_registration_id: Optional[int] = None,
-    ) -> Dict[str, Any]:
+    ) -> StatusResponse:
         """Update a registered Signal account.
 
         Args:
@@ -90,7 +91,7 @@ class AccountsModule:
             pni_registration_id: The PNI registration ID.
 
         Returns:
-            The response containing the update information.
+            A status response containing the update information.
         """
         url = f"{self.base_url}/v1/accounts/{number}"
         data = {}
@@ -98,21 +99,23 @@ class AccountsModule:
             data["registrationId"] = registration_id
         if pni_registration_id is not None:
             data["pniRegistrationId"] = pni_registration_id
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return StatusResponse(**response)
 
-    async def delete_account(self, number: str) -> Dict[str, Any]:
+    async def delete_account(self, number: str) -> StatusResponse:
         """Delete a registered Signal account.
 
         Args:
             number: The registered phone number.
 
         Returns:
-            The response containing the deletion information.
+            A status response containing the deletion information.
         """
         url = f"{self.base_url}/v1/accounts/{number}"
-        return await make_request(self._module_session, "DELETE", url)
+        response = await make_request(self._module_session, "DELETE", url)
+        return StatusResponse(**response)
 
-    async def set_pin(self, number: str, pin: str) -> Dict[str, Any]:
+    async def set_pin(self, number: str, pin: str) -> StatusResponse:
         """Set a PIN for a registered Signal account.
 
         Args:
@@ -120,20 +123,22 @@ class AccountsModule:
             pin: The PIN to set.
 
         Returns:
-            The response containing the PIN setting information.
+            A status response containing the PIN setting information.
         """
         url = f"{self.base_url}/v1/accounts/{number}/pin"
         data = {"pin": pin}
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return StatusResponse(**response)
 
-    async def remove_pin(self, number: str) -> Dict[str, Any]:
+    async def remove_pin(self, number: str) -> StatusResponse:
         """Remove the PIN from a registered Signal account.
 
         Args:
             number: The registered phone number.
 
         Returns:
-            The response containing the PIN removal information.
+            A status response containing the PIN removal information.
         """
         url = f"{self.base_url}/v1/accounts/{number}/pin"
-        return await make_request(self._module_session, "DELETE", url)
+        response = await make_request(self._module_session, "DELETE", url)
+        return StatusResponse(**response)

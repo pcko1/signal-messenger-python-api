@@ -4,7 +4,7 @@ from typing import Any, BinaryIO, Dict, List, Optional, Union
 
 import aiohttp
 
-from signal_messenger.models import Attachment
+from signal_messenger.models import Attachment, StatusResponse
 from signal_messenger.utils import make_request
 
 
@@ -81,7 +81,7 @@ class AttachmentsModule:
 
     async def delete_attachment(
         self, number: str, attachment_id: str
-    ) -> Dict[str, Any]:
+    ) -> StatusResponse:
         """Delete an attachment.
 
         Args:
@@ -89,10 +89,11 @@ class AttachmentsModule:
             attachment_id: The attachment ID.
 
         Returns:
-            The response containing the attachment deletion information.
+            A status response containing the attachment deletion information.
         """
         url = f"{self.base_url}/v1/attachments/{number}/{attachment_id}"
-        return await make_request(self._module_session, "DELETE", url)
+        response = await make_request(self._module_session, "DELETE", url)
+        return StatusResponse(**response)
 
     async def get_attachment_info(self, number: str, attachment_id: str) -> Attachment:
         """Get information about an attachment.

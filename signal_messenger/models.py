@@ -446,3 +446,30 @@ class Contact(BaseModelWithDictAccess):
     profile_key: Optional[str] = None
     blocked: Optional[bool] = None
     expiration: Optional[int] = None
+
+
+# Status Response Model
+class StatusResponse(BaseModelWithDictAccess):
+    """Status response model for action methods."""
+
+    model_config = ConfigDict(extra="allow")
+
+    # Common status fields
+    success: Optional[bool] = None
+    message: Optional[str] = None
+
+    # Delete operation fields
+    deleted: Optional[bool] = None
+
+    # Send operation fields
+    sent: Optional[bool] = None
+
+    # Group operation fields
+    left: Optional[bool] = None
+
+    # Typing indicator fields
+    typing: Optional[bool] = None
+
+    # PIN operation fields
+    pin_set: Optional[bool] = None
+    pin_removed: Optional[bool] = None

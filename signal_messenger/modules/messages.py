@@ -4,7 +4,14 @@ from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 
-from signal_messenger.models import Message, MessageType, Reaction, Receipt, ReceiptType
+from signal_messenger.models import (
+    Message,
+    MessageType,
+    Reaction,
+    Receipt,
+    ReceiptType,
+    StatusResponse,
+)
 from signal_messenger.utils import make_request
 
 
@@ -75,7 +82,7 @@ class MessagesModule:
 
     async def send_typing_indicator(
         self, number: str, recipient: str, stop: bool = False
-    ) -> Dict[str, Any]:
+    ) -> StatusResponse:
         """Send a typing indicator to a recipient.
 
         Args:
@@ -84,11 +91,12 @@ class MessagesModule:
             stop: Whether to stop the typing indicator (default: False).
 
         Returns:
-            A dictionary containing the typing indicator status, typically {"sent": true}.
+            A status response containing the typing indicator status, typically {"sent": true}.
         """
         url = f"{self.base_url}/v1/typing-indicator/{number}/{recipient}"
         data = {"stop": stop}
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return StatusResponse(**response)
 
     async def send_read_receipt(
         self, number: str, recipient: str, timestamps: List[int]
@@ -210,7 +218,7 @@ class MessagesModule:
 
         return result
 
-    async def delete_message(self, number: str, message_id: str) -> Dict[str, Any]:
+    async def delete_message(self, number: str, message_id: str) -> StatusResponse:
         """Delete a message.
 
         Args:
@@ -218,7 +226,8 @@ class MessagesModule:
             message_id: The message ID.
 
         Returns:
-            A dictionary containing the deletion status, typically {"deleted": true}.
+            A status response containing the deletion status, typically {"deleted": true}.
         """
         url = f"{self.base_url}/v1/messages/{number}/{message_id}"
-        return await make_request(self._module_session, "DELETE", url)
+        response = await make_request(self._module_session, "DELETE", url)
+        return StatusResponse(**response)

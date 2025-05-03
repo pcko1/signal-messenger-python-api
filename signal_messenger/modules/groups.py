@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from signal_messenger.models import Group, GroupMember
+from signal_messenger.models import Group, GroupMember, StatusResponse
 from signal_messenger.utils import make_request
 
 
@@ -159,7 +159,7 @@ class GroupsModule:
             # Try to create a minimal Group object
             return Group(id=group_id, name=name, description=description, avatar=avatar)
 
-    async def delete_group(self, number: str, group_id: str) -> Dict[str, Any]:
+    async def delete_group(self, number: str, group_id: str) -> StatusResponse:
         """Delete a group.
 
         Args:
@@ -167,10 +167,11 @@ class GroupsModule:
             group_id: The group ID.
 
         Returns:
-            A dictionary containing the deletion status, typically {"deleted": true}.
+            A status response containing the deletion status, typically {"deleted": true}.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}"
-        return await make_request(self._module_session, "DELETE", url)
+        response = await make_request(self._module_session, "DELETE", url)
+        return StatusResponse(**response)
 
     async def add_members(
         self, number: str, group_id: str, members: List[str]
@@ -252,7 +253,7 @@ class GroupsModule:
             # Try to create a minimal Group object
             return Group(id=group_id)
 
-    async def leave_group(self, number: str, group_id: str) -> Dict[str, Any]:
+    async def leave_group(self, number: str, group_id: str) -> StatusResponse:
         """Leave a group.
 
         Args:
@@ -260,7 +261,8 @@ class GroupsModule:
             group_id: The group ID.
 
         Returns:
-            A dictionary containing the leave status, typically {"left": true}.
+            A status response containing the leave status, typically {"left": true}.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}/leave"
-        return await make_request(self._module_session, "POST", url)
+        response = await make_request(self._module_session, "POST", url)
+        return StatusResponse(**response)
