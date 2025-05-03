@@ -6,12 +6,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setup(
     name="signal-messenger-python-api",
     version="0.1.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="pcko1",
+    author_email="hi@pankotsias.com",
     description="Asynchronous Python wrapper for the Signal CLI REST API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/signal-messenger-python-api",
+    url="https://github.com/pcko1/signal-messenger-python-api",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
