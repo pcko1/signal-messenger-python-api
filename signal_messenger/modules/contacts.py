@@ -1,9 +1,10 @@
 """Contacts module for the Signal Messenger Python API."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 
+from signal_messenger.models import Contact, StatusResponse
 from signal_messenger.utils import make_request
 
 
@@ -23,24 +24,27 @@ class ContactsModule:
         self.base_url = base_url
         self._module_session = session
 
-    async def get_contacts(self, number: str) -> List[Dict[str, Any]]:
+    async def get_contacts(self, number: str) -> List[Contact]:
         """Get all contacts for a phone number.
 
         Args:
             number: The registered phone number.
 
         Returns:
-            A list of contacts.
+            A list of Contact objects.
         """
         url = f"{self.base_url}/v1/contacts/{number}"
         response = await make_request(self._module_session, "GET", url)
+        contacts = []
         if isinstance(response, dict) and "contacts" in response:
-            return response["contacts"]
+            contacts = [Contact(**contact) for contact in response["contacts"]]
         elif isinstance(response, list):
-            return response
-        return [response]
+            contacts = [Contact(**contact) for contact in response]
+        else:
+            contacts = [Contact(**response)]
+        return contacts
 
-    async def get_contact(self, number: str, contact: str) -> Dict[str, Any]:
+    async def get_contact(self, number: str, contact: str) -> Contact:
         """Get a specific contact.
 
         Args:
@@ -48,10 +52,11 @@ class ContactsModule:
             contact: The contact's phone number.
 
         Returns:
-            The contact details.
+            The contact details as a Contact object.
         """
         url = f"{self.base_url}/v1/contacts/{number}/{contact}"
-        return await make_request(self._module_session, "GET", url)
+        response = await make_request(self._module_session, "GET", url)
+        return Contact(**response)
 
     async def add_contact(
         self,
@@ -59,7 +64,7 @@ class ContactsModule:
         contact: str,
         name: Optional[str] = None,
         expiration: Optional[int] = None,
-    ) -> Dict[str, Any]:
+    ) -> StatusResponse:
         """Add a contact.
 
         Args:
@@ -77,7 +82,8 @@ class ContactsModule:
             data["name"] = name
         if expiration is not None:
             data["expiration"] = str(expiration)
-        return await make_request(self._module_session, "POST", url, data=data)
+        response = await make_request(self._module_session, "POST", url, data=data)
+        return StatusResponse(**response)
 
     async def update_contact(
         self,
@@ -86,7 +92,7 @@ class ContactsModule:
         name: Optional[str] = None,
         expiration: Optional[int] = None,
         blocked: Optional[bool] = None,
-    ) -> Dict[str, Any]:
+    ) -> StatusResponse:
         """Update a contact.
 
         Args:
@@ -107,9 +113,10 @@ class ContactsModule:
             data["expiration"] = str(expiration)
         if blocked is not None:
             data["blocked"] = blocked
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return StatusResponse(**response)
 
-    async def delete_contact(self, number: str, contact: str) -> Dict[str, Any]:
+    async def delete_contact(self, number: str, contact: str) -> StatusResponse:
         """Delete a contact.
 
         Args:
@@ -120,9 +127,10 @@ class ContactsModule:
             The response containing the contact deletion information.
         """
         url = f"{self.base_url}/v1/contacts/{number}/{contact}"
-        return await make_request(self._module_session, "DELETE", url)
+        response = await make_request(self._module_session, "DELETE", url)
+        return StatusResponse(**response)
 
-    async def block_contact(self, number: str, contact: str) -> Dict[str, Any]:
+    async def block_contact(self, number: str, contact: str) -> StatusResponse:
         """Block a contact.
 
         Args:
@@ -133,9 +141,10 @@ class ContactsModule:
             The response containing the contact blocking information.
         """
         url = f"{self.base_url}/v1/contacts/{number}/{contact}/block"
-        return await make_request(self._module_session, "PUT", url)
+        response = await make_request(self._module_session, "PUT", url)
+        return StatusResponse(**response)
 
-    async def unblock_contact(self, number: str, contact: str) -> Dict[str, Any]:
+    async def unblock_contact(self, number: str, contact: str) -> StatusResponse:
         """Unblock a contact.
 
         Args:
@@ -146,21 +155,25 @@ class ContactsModule:
             The response containing the contact unblocking information.
         """
         url = f"{self.base_url}/v1/contacts/{number}/{contact}/unblock"
-        return await make_request(self._module_session, "PUT", url)
+        response = await make_request(self._module_session, "PUT", url)
+        return StatusResponse(**response)
 
-    async def get_blocked_contacts(self, number: str) -> List[Dict[str, Any]]:
+    async def get_blocked_contacts(self, number: str) -> List[Contact]:
         """Get all blocked contacts for a phone number.
 
         Args:
             number: The registered phone number.
 
         Returns:
-            A list of blocked contacts.
+            A list of blocked Contact objects.
         """
         url = f"{self.base_url}/v1/contacts/{number}/blocked"
         response = await make_request(self._module_session, "GET", url)
+        contacts = []
         if isinstance(response, dict) and "contacts" in response:
-            return response["contacts"]
+            contacts = [Contact(**contact) for contact in response["contacts"]]
         elif isinstance(response, list):
-            return response
-        return [response]
+            contacts = [Contact(**contact) for contact in response]
+        else:
+            contacts = [Contact(**response)]
+        return contacts

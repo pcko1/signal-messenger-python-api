@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from signal_messenger.models import Contact, StatusResponse
 from signal_messenger.modules.contacts import ContactsModule
 
 
@@ -46,10 +47,12 @@ async def test_get_contacts(contacts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["number"] == "+0987654321"
-        assert result[0]["name"] == "John Doe"
-        assert result[1]["number"] == "+5555555555"
-        assert result[1]["name"] == "Jane Smith"
+        assert isinstance(result[0], Contact)
+        assert result[0].number == "+0987654321"
+        assert result[0].name == "John Doe"
+        assert isinstance(result[1], Contact)
+        assert result[1].number == "+5555555555"
+        assert result[1].name == "Jane Smith"
 
 
 @pytest.mark.asyncio
@@ -81,10 +84,12 @@ async def test_get_contacts_list_response(contacts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["number"] == "+0987654321"
-        assert result[0]["name"] == "John Doe"
-        assert result[1]["number"] == "+5555555555"
-        assert result[1]["name"] == "Jane Smith"
+        assert isinstance(result[0], Contact)
+        assert result[0].number == "+0987654321"
+        assert result[0].name == "John Doe"
+        assert isinstance(result[1], Contact)
+        assert result[1].number == "+5555555555"
+        assert result[1].name == "Jane Smith"
 
 
 @pytest.mark.asyncio
@@ -108,8 +113,9 @@ async def test_get_contacts_single_response(contacts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["number"] == "+0987654321"
-        assert result[0]["name"] == "John Doe"
+        assert isinstance(result[0], Contact)
+        assert result[0].number == "+0987654321"
+        assert result[0].name == "John Doe"
 
 
 @pytest.mark.asyncio
@@ -130,10 +136,11 @@ async def test_get_contact(contacts_module):
         result = await contacts_module.get_contact("+1234567890", "+0987654321")
 
         # Verify the result
-        assert result["number"] == "+0987654321"
-        assert result["name"] == "John Doe"
-        assert result["expiration"] == "604800"
-        assert result["blocked"] is False
+        assert isinstance(result, Contact)
+        assert result.number == "+0987654321"
+        assert result.name == "John Doe"
+        assert result.expiration == "604800"
+        assert result.blocked is False
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -158,8 +165,9 @@ async def test_add_contact(contacts_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Contact added"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Contact added"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -185,8 +193,9 @@ async def test_add_contact_with_expiration(contacts_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Contact added"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Contact added"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -212,8 +221,9 @@ async def test_update_contact(contacts_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Contact updated"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Contact updated"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -239,8 +249,9 @@ async def test_update_contact_with_expiration(contacts_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Contact updated"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Contact updated"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -266,8 +277,9 @@ async def test_update_contact_with_blocked(contacts_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Contact updated"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Contact updated"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -291,8 +303,9 @@ async def test_delete_contact(contacts_module):
         result = await contacts_module.delete_contact("+1234567890", "+0987654321")
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Contact deleted"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Contact deleted"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -315,8 +328,9 @@ async def test_block_contact(contacts_module):
         result = await contacts_module.block_contact("+1234567890", "+0987654321")
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Contact blocked"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Contact blocked"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -339,8 +353,9 @@ async def test_unblock_contact(contacts_module):
         result = await contacts_module.unblock_contact("+1234567890", "+0987654321")
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Contact unblocked"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Contact unblocked"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -380,10 +395,12 @@ async def test_get_blocked_contacts(contacts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["number"] == "+0987654321"
-        assert result[0]["blocked"] is True
-        assert result[1]["number"] == "+5555555555"
-        assert result[1]["blocked"] is True
+        assert isinstance(result[0], Contact)
+        assert result[0].number == "+0987654321"
+        assert result[0].blocked is True
+        assert isinstance(result[1], Contact)
+        assert result[1].number == "+5555555555"
+        assert result[1].blocked is True
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
