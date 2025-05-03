@@ -1,5 +1,12 @@
 # Signal Messenger Python API
 
+[![PyPI version](https://img.shields.io/pypi/v/signal-messenger-python-api.svg)](https://pypi.org/project/signal-messenger-python-api/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/pcko1/signal-messenger-python-api.svg)](https://github.com/pcko1/signal-messenger-python-api/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/pcko1/signal-messenger-python-api.svg)](https://github.com/pcko1/signal-messenger-python-api/network)
+[![GitHub issues](https://img.shields.io/github/issues/pcko1/signal-messenger-python-api.svg)](https://github.com/pcko1/signal-messenger-python-api/issues)
+[![Wiki](https://img.shields.io/badge/Wiki-Documentation-blue)](https://github.com/pcko1/signal-messenger-python-api/wiki)
+
 An asynchronous Python wrapper for the [Signal CLI REST API](https://bbernhard.github.io/signal-cli-rest-api/).
 
 ## Features
