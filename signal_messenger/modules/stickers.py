@@ -36,14 +36,61 @@ class StickersModule:
         url = f"{self.base_url}/v1/stickers/{number}"
         response = await make_request(self._module_session, "GET", url)
 
-        sticker_packs = []
+        # Handle different response formats
         if isinstance(response, dict):
             if "stickers" in response:
+                # Response contains a list of sticker packs in the "stickers" field
                 sticker_packs = response["stickers"]
             else:
-                # If it's already a properly formatted sticker pack, just use it directly
-                sticker_packs = [response]
+                # Response is a single sticker pack
+                # For a single sticker pack, we'll directly create and return a StickerPack object
+                try:
+                    # Ensure ID is a string as required by the model
+                    if "id" in response and not isinstance(response["id"], str):
+                        response["id"] = str(response["id"])
+
+                    # Add key if missing
+                    if "key" not in response:
+                        response["key"] = f"key-{response['id']}"
+
+                    # Create sticker objects if needed
+                    if "stickers" in response and isinstance(
+                        response["stickers"], list
+                    ):
+                        processed_stickers = []
+                        for s in response["stickers"]:
+                            if isinstance(s, dict):
+                                sticker_data = s.copy()
+                                # Ensure sticker ID is integer as required by the model
+                                if "id" in sticker_data and not isinstance(
+                                    sticker_data["id"], int
+                                ):
+                                    try:
+                                        sticker_data["id"] = int(sticker_data["id"])
+                                    except (ValueError, TypeError):
+                                        pass
+                                processed_stickers.append(Sticker(**sticker_data))
+                        response["stickers"] = processed_stickers
+
+                    # Create the StickerPack object with explicit fields
+                    pack = StickerPack(
+                        id=str(response["id"]),
+                        key=response.get("key", f"key-{response['id']}"),
+                        title=response.get("title"),
+                        author=response.get("author"),
+                        stickers=[
+                            Sticker(**s)
+                            for s in response.get("stickers", [])
+                            if isinstance(s, dict)
+                        ],
+                    )
+                    return [pack]
+                except Exception as e:
+                    # Log error and return empty list
+                    print(f"Error creating StickerPack from single response: {e}")
+                    return []
         elif isinstance(response, list):
+            # Response is a list of sticker packs
             sticker_packs = response
         else:
             # Unexpected response type
@@ -57,6 +104,9 @@ class StickersModule:
 
             # Make a deep copy to avoid modifying the original data
             pack_data = pack.copy()
+
+            # Process the pack ID
+            # No special handling needed here
 
             # Create sticker objects from stickers in the pack
             if "stickers" in pack_data and isinstance(pack_data["stickers"], list):
@@ -79,6 +129,8 @@ class StickersModule:
             # Ensure required fields exist with correct types
             if "id" in pack_data:
                 # Ensure pack ID is string as required by model
+                # Only convert to string if it's not already a string
+                # This preserves the original string value like "pack1" instead of converting it to "1"
                 if not isinstance(pack_data["id"], str):
                     pack_data["id"] = str(pack_data["id"])
 
