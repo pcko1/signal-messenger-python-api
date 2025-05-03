@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from signal_messenger.models import LinkedDevice, StatusResponse
 from signal_messenger.modules.devices import DevicesModule
 
 
@@ -36,10 +37,12 @@ async def test_get_linked_devices(devices_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == 1
-        assert result[0]["name"] == "Primary Device"
-        assert result[1]["id"] == 2
-        assert result[1]["name"] == "Secondary Device"
+        assert isinstance(result[0], LinkedDevice)
+        assert result[0].id == 1
+        assert result[0].name == "Primary Device"
+        assert isinstance(result[1], LinkedDevice)
+        assert result[1].id == 2
+        assert result[1].name == "Secondary Device"
 
 
 @pytest.mark.asyncio
@@ -61,10 +64,12 @@ async def test_get_linked_devices_list_response(devices_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == 1
-        assert result[0]["name"] == "Primary Device"
-        assert result[1]["id"] == 2
-        assert result[1]["name"] == "Secondary Device"
+        assert isinstance(result[0], LinkedDevice)
+        assert result[0].id == 1
+        assert result[0].name == "Primary Device"
+        assert isinstance(result[1], LinkedDevice)
+        assert result[1].id == 2
+        assert result[1].name == "Secondary Device"
 
 
 @pytest.mark.asyncio
@@ -87,8 +92,9 @@ async def test_get_linked_devices_single_response(devices_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["id"] == 1
-        assert result[0]["name"] == "Primary Device"
+        assert isinstance(result[0], LinkedDevice)
+        assert result[0].id == 1
+        assert result[0].name == "Primary Device"
 
 
 @pytest.mark.asyncio
@@ -104,8 +110,9 @@ async def test_link_device(devices_module):
         result = await devices_module.link_device("+1234567890", "New Device")
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Device linked successfully"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Device linked successfully"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -129,6 +136,7 @@ async def test_get_qr_code_link(devices_module):
         result = await devices_module.get_qr_code_link("Test Device")
 
         # Verify the result
+        assert isinstance(result, dict)
         assert result["url"] == "https://example.com/qrcode"
 
         # Verify the make_request call
@@ -153,6 +161,7 @@ async def test_get_qr_code_link_no_name(devices_module):
         result = await devices_module.get_qr_code_link()
 
         # Verify the result
+        assert isinstance(result, dict)
         assert result["url"] == "https://example.com/qrcode"
 
         # Verify the make_request call
@@ -177,8 +186,9 @@ async def test_register_device(devices_module):
         result = await devices_module.register_device("+1234567890")
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Registration initiated"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Registration initiated"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -201,8 +211,9 @@ async def test_verify_device(devices_module):
         result = await devices_module.verify_device("+1234567890", "123456")
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Verification successful"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Verification successful"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
