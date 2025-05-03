@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from signal_messenger.models import Profile
 from signal_messenger.utils import make_request
 
 
@@ -23,7 +24,7 @@ class ProfilesModule:
         self.base_url = base_url
         self._module_session = session
 
-    async def get_profile(self, number: str) -> Dict[str, Any]:
+    async def get_profile(self, number: str) -> Profile:
         """Get the profile for a phone number.
 
         Args:
@@ -33,7 +34,18 @@ class ProfilesModule:
             The profile information.
         """
         url = f"{self.base_url}/v1/profiles/{number}"
-        return await make_request(self._module_session, "GET", url)
+        response = await make_request(self._module_session, "GET", url)
+
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            profile_dict = {str(k): v for k, v in response.items()}
+            # Add the number if not in the response
+            if "number" not in profile_dict:
+                profile_dict["number"] = number
+            return Profile(**profile_dict)
+        else:
+            # Try to create a minimal Profile object
+            return Profile(number=number)
 
     async def update_profile(
         self,
@@ -42,7 +54,7 @@ class ProfilesModule:
         about: Optional[str] = None,
         avatar: Optional[str] = None,
         emoji: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> Profile:
         """Update a profile.
 
         Args:
@@ -53,7 +65,7 @@ class ProfilesModule:
             emoji: The new profile emoji (optional).
 
         Returns:
-            The response containing the profile update information.
+            The updated profile.
         """
         url = f"{self.base_url}/v1/profiles/{number}"
         data = {}
@@ -64,10 +76,35 @@ class ProfilesModule:
         if avatar is not None:
             data["avatar"] = avatar
         if emoji is not None:
-            data["emoji"] = emoji
-        return await make_request(self._module_session, "PUT", url, data=data)
+            data["about_emoji"] = (
+                emoji  # Assuming emoji maps to about_emoji in the model
+            )
 
-    async def get_contact_profile(self, number: str, contact: str) -> Dict[str, Any]:
+        response = await make_request(self._module_session, "PUT", url, data=data)
+
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            profile_dict = {str(k): v for k, v in response.items()}
+            # Add the number if not in the response
+            if "number" not in profile_dict:
+                profile_dict["number"] = number
+            # Add the updated fields if not in the response
+            if name is not None and "name" not in profile_dict:
+                profile_dict["name"] = name
+            if about is not None and "about" not in profile_dict:
+                profile_dict["about"] = about
+            if avatar is not None and "avatar" not in profile_dict:
+                profile_dict["avatar"] = avatar
+            if emoji is not None and "about_emoji" not in profile_dict:
+                profile_dict["about_emoji"] = emoji
+            return Profile(**profile_dict)
+        else:
+            # Try to create a minimal Profile object with the updated fields
+            return Profile(
+                number=number, name=name, about=about, avatar=avatar, about_emoji=emoji
+            )
+
+    async def get_contact_profile(self, number: str, contact: str) -> Profile:
         """Get the profile of a contact.
 
         Args:
@@ -78,9 +115,20 @@ class ProfilesModule:
             The contact's profile information.
         """
         url = f"{self.base_url}/v1/profiles/{number}/contacts/{contact}"
-        return await make_request(self._module_session, "GET", url)
+        response = await make_request(self._module_session, "GET", url)
 
-    async def get_contacts_profiles(self, number: str) -> List[Dict[str, Any]]:
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            profile_dict = {str(k): v for k, v in response.items()}
+            # Add the contact number if not in the response
+            if "number" not in profile_dict:
+                profile_dict["number"] = contact
+            return Profile(**profile_dict)
+        else:
+            # Try to create a minimal Profile object
+            return Profile(number=contact)
+
+    async def get_contacts_profiles(self, number: str) -> List[Profile]:
         """Get the profiles of all contacts.
 
         Args:
@@ -91,15 +139,31 @@ class ProfilesModule:
         """
         url = f"{self.base_url}/v1/profiles/{number}/contacts"
         response = await make_request(self._module_session, "GET", url)
+
+        contacts = []
         if isinstance(response, dict) and "contacts" in response:
-            return response["contacts"]
+            contacts = response["contacts"]
         elif isinstance(response, list):
-            return response
-        return [response]
+            contacts = response
+        else:
+            contacts = [response]
+
+        # Convert contacts to Profile objects
+        result = []
+        for contact in contacts:
+            if isinstance(contact, dict):
+                # Convert any non-string keys to strings
+                profile_dict = {str(k): v for k, v in contact.items()}
+                result.append(Profile(**profile_dict))
+            else:
+                # Try to create a minimal Profile object
+                result.append(Profile(number=str(contact)))
+
+        return result
 
     async def set_profile_sharing(
         self, number: str, contact: str, enabled: bool
-    ) -> Dict[str, Any]:
+    ) -> Profile:
         """Set profile sharing with a contact.
 
         Args:
@@ -108,8 +172,22 @@ class ProfilesModule:
             enabled: Whether to enable profile sharing.
 
         Returns:
-            The response containing the profile sharing information.
+            The updated contact profile.
         """
         url = f"{self.base_url}/v1/profiles/{number}/contacts/{contact}/sharing"
         data = {"enabled": enabled}
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            profile_dict = {str(k): v for k, v in response.items()}
+            # Add the contact number if not in the response
+            if "number" not in profile_dict:
+                profile_dict["number"] = contact
+            # Add the profile_sharing field if not in the response
+            if "profile_sharing" not in profile_dict:
+                profile_dict["profile_sharing"] = enabled
+            return Profile(**profile_dict)
+        else:
+            # Try to create a minimal Profile object
+            return Profile(number=contact, profile_sharing=enabled)

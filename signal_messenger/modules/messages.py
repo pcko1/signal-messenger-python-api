@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 
+from signal_messenger.models import Message, MessageType, Reaction, Receipt, ReceiptType
 from signal_messenger.utils import make_request
 
 
@@ -31,7 +32,7 @@ class MessagesModule:
         attachments: Optional[List[str]] = None,
         mention_recipients: Optional[List[Dict[str, Any]]] = None,
         quote: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+    ) -> Message:
         """Send a message to one or more recipients.
 
         Args:
@@ -43,7 +44,7 @@ class MessagesModule:
             quote: The quote information (optional).
 
         Returns:
-            The response containing the message sending information.
+            The sent message object.
         """
         url = f"{self.base_url}/v2/send"
         data = {
@@ -57,7 +58,20 @@ class MessagesModule:
             data["mention"] = mention_recipients
         if quote:
             data["quote"] = quote
-        return await make_request(self._module_session, "POST", url, data=data)
+        response = await make_request(self._module_session, "POST", url, data=data)
+
+        # Create a Message object from the response
+        msg_data = {
+            "message": message,
+            "source": number,
+            "type": MessageType.OUTGOING,
+        }
+
+        # Add any additional data from the response
+        if isinstance(response, dict):
+            msg_data.update({str(k): v for k, v in response.items()})
+
+        return Message(**msg_data)
 
     async def send_typing_indicator(
         self, number: str, recipient: str, stop: bool = False
@@ -70,7 +84,7 @@ class MessagesModule:
             stop: Whether to stop the typing indicator (default: False).
 
         Returns:
-            The response containing the typing indicator information.
+            A dictionary containing the typing indicator status, typically {"sent": true}.
         """
         url = f"{self.base_url}/v1/typing-indicator/{number}/{recipient}"
         data = {"stop": stop}
@@ -78,7 +92,7 @@ class MessagesModule:
 
     async def send_read_receipt(
         self, number: str, recipient: str, timestamps: List[int]
-    ) -> Dict[str, Any]:
+    ) -> Receipt:
         """Send a read receipt to a recipient.
 
         Args:
@@ -87,15 +101,24 @@ class MessagesModule:
             timestamps: The list of message timestamps to mark as read.
 
         Returns:
-            The response containing the read receipt information.
+            The receipt object.
         """
         url = f"{self.base_url}/v1/receipts/{number}/{recipient}/read"
         data = {"timestamps": timestamps}
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return Receipt(
+            type=ReceiptType.READ,
+            sender=number,
+            sender_uuid=None,
+            sender_device=None,
+            timestamp=timestamps[0] if timestamps else None,
+            when=None,
+            **response,
+        )
 
     async def send_viewed_receipt(
         self, number: str, recipient: str, timestamps: List[int]
-    ) -> Dict[str, Any]:
+    ) -> Receipt:
         """Send a viewed receipt to a recipient.
 
         Args:
@@ -104,15 +127,24 @@ class MessagesModule:
             timestamps: The list of message timestamps to mark as viewed.
 
         Returns:
-            The response containing the viewed receipt information.
+            The receipt object.
         """
         url = f"{self.base_url}/v1/receipts/{number}/{recipient}/viewed"
         data = {"timestamps": timestamps}
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return Receipt(
+            type=ReceiptType.VIEWED,
+            sender=number,
+            sender_uuid=None,
+            sender_device=None,
+            timestamp=timestamps[0] if timestamps else None,
+            when=None,
+            **response,
+        )
 
     async def send_delivery_receipt(
         self, number: str, recipient: str, timestamps: List[int]
-    ) -> Dict[str, Any]:
+    ) -> Receipt:
         """Send a delivery receipt to a recipient.
 
         Args:
@@ -121,15 +153,24 @@ class MessagesModule:
             timestamps: The list of message timestamps to mark as delivered.
 
         Returns:
-            The response containing the delivery receipt information.
+            The receipt object.
         """
         url = f"{self.base_url}/v1/receipts/{number}/{recipient}/delivery"
         data = {"timestamps": timestamps}
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+        return Receipt(
+            type=ReceiptType.DELIVERY,
+            sender=number,
+            sender_uuid=None,
+            sender_device=None,
+            timestamp=timestamps[0] if timestamps else None,
+            when=None,
+            **response,
+        )
 
     async def get_messages(
         self, number: str, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Message]:
         """Get messages for a phone number.
 
         Args:
@@ -144,11 +185,30 @@ class MessagesModule:
         if limit is not None:
             params["limit"] = limit
         response = await make_request(self._module_session, "GET", url, params=params)
+
+        messages = []
         if isinstance(response, dict) and "messages" in response:
-            return response["messages"]
+            messages = response["messages"]
         elif isinstance(response, list):
-            return response
-        return [response]
+            messages = response
+        else:
+            messages = [response]
+
+        # Convert messages to Message objects
+        result = []
+        for msg in messages:
+            if isinstance(msg, dict):
+                # Convert any non-string keys to strings
+                msg_dict = {str(k): v for k, v in msg.items()}
+                result.append(Message(**msg_dict))
+            elif isinstance(msg, str):
+                # Handle case where message is a string
+                result.append(Message(message=msg))
+            else:
+                # Try to convert to Message as is
+                result.append(Message(**{"message": str(msg)}))
+
+        return result
 
     async def delete_message(self, number: str, message_id: str) -> Dict[str, Any]:
         """Delete a message.
@@ -158,7 +218,7 @@ class MessagesModule:
             message_id: The message ID.
 
         Returns:
-            The response containing the message deletion information.
+            A dictionary containing the deletion status, typically {"deleted": true}.
         """
         url = f"{self.base_url}/v1/messages/{number}/{message_id}"
         return await make_request(self._module_session, "DELETE", url)

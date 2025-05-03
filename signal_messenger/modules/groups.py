@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from signal_messenger.models import Group, GroupMember
 from signal_messenger.utils import make_request
 
 
@@ -23,7 +24,7 @@ class GroupsModule:
         self.base_url = base_url
         self._module_session = session
 
-    async def get_groups(self, number: str) -> List[Dict[str, Any]]:
+    async def get_groups(self, number: str) -> List[Group]:
         """Get all groups for a phone number.
 
         Args:
@@ -34,13 +35,29 @@ class GroupsModule:
         """
         url = f"{self.base_url}/v1/groups/{number}"
         response = await make_request(self._module_session, "GET", url)
-        if isinstance(response, dict) and "groups" in response:
-            return response["groups"]
-        elif isinstance(response, list):
-            return response
-        return [response]
 
-    async def get_group(self, number: str, group_id: str) -> Dict[str, Any]:
+        groups = []
+        if isinstance(response, dict) and "groups" in response:
+            groups = response["groups"]
+        elif isinstance(response, list):
+            groups = response
+        else:
+            groups = [response]
+
+        # Convert groups to Group objects
+        result = []
+        for group in groups:
+            if isinstance(group, dict):
+                # Convert any non-string keys to strings
+                group_dict = {str(k): v for k, v in group.items()}
+                result.append(Group(**group_dict))
+            else:
+                # Try to convert to Group as is
+                result.append(Group(id=str(group)))
+
+        return result
+
+    async def get_group(self, number: str, group_id: str) -> Group:
         """Get a specific group.
 
         Args:
@@ -51,11 +68,19 @@ class GroupsModule:
             The group details.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}"
-        return await make_request(self._module_session, "GET", url)
+        response = await make_request(self._module_session, "GET", url)
+
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            group_dict = {str(k): v for k, v in response.items()}
+            return Group(**group_dict)
+        else:
+            # Try to convert to Group as is
+            return Group(id=group_id)
 
     async def create_group(
         self, number: str, name: str, members: List[str], avatar: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> Group:
         """Create a new group.
 
         Args:
@@ -65,13 +90,26 @@ class GroupsModule:
             avatar: The avatar URL (optional).
 
         Returns:
-            The response containing the group creation information.
+            The created group.
         """
         url = f"{self.base_url}/v1/groups/{number}"
         data = {"name": name, "members": members}
         if avatar:
             data["avatar"] = avatar
-        return await make_request(self._module_session, "POST", url, data=data)
+        response = await make_request(self._module_session, "POST", url, data=data)
+
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            group_dict = {str(k): v for k, v in response.items()}
+            # Add the name and members if not in the response
+            if "name" not in group_dict:
+                group_dict["name"] = name
+            if "members" not in group_dict and members:
+                group_dict["members"] = [{"number": m} for m in members]
+            return Group(**group_dict)
+        else:
+            # Try to create a minimal Group object
+            return Group(id=str(response), name=name)
 
     async def update_group(
         self,
@@ -80,7 +118,7 @@ class GroupsModule:
         name: Optional[str] = None,
         description: Optional[str] = None,
         avatar: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> Group:
         """Update a group.
 
         Args:
@@ -91,7 +129,7 @@ class GroupsModule:
             avatar: The new avatar URL (optional).
 
         Returns:
-            The response containing the group update information.
+            The updated group.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}"
         data = {}
@@ -101,7 +139,25 @@ class GroupsModule:
             data["description"] = description
         if avatar:
             data["avatar"] = avatar
-        return await make_request(self._module_session, "PUT", url, data=data)
+        response = await make_request(self._module_session, "PUT", url, data=data)
+
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            group_dict = {str(k): v for k, v in response.items()}
+            # Add the group_id if not in the response
+            if "id" not in group_dict:
+                group_dict["id"] = group_id
+            # Add the updated fields if not in the response
+            if name and "name" not in group_dict:
+                group_dict["name"] = name
+            if description and "description" not in group_dict:
+                group_dict["description"] = description
+            if avatar and "avatar" not in group_dict:
+                group_dict["avatar"] = avatar
+            return Group(**group_dict)
+        else:
+            # Try to create a minimal Group object
+            return Group(id=group_id, name=name, description=description, avatar=avatar)
 
     async def delete_group(self, number: str, group_id: str) -> Dict[str, Any]:
         """Delete a group.
@@ -111,14 +167,14 @@ class GroupsModule:
             group_id: The group ID.
 
         Returns:
-            The response containing the group deletion information.
+            A dictionary containing the deletion status, typically {"deleted": true}.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}"
         return await make_request(self._module_session, "DELETE", url)
 
     async def add_members(
         self, number: str, group_id: str, members: List[str]
-    ) -> Dict[str, Any]:
+    ) -> Group:
         """Add members to a group.
 
         Args:
@@ -127,15 +183,26 @@ class GroupsModule:
             members: The list of member phone numbers to add.
 
         Returns:
-            The response containing the member addition information.
+            The updated group with new members.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}/members"
         data = {"members": members}
-        return await make_request(self._module_session, "POST", url, data=data)
+        response = await make_request(self._module_session, "POST", url, data=data)
+
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            group_dict = {str(k): v for k, v in response.items()}
+            # Add the group_id if not in the response
+            if "id" not in group_dict:
+                group_dict["id"] = group_id
+            return Group(**group_dict)
+        else:
+            # Try to create a minimal Group object
+            return Group(id=group_id)
 
     async def remove_members(
         self, number: str, group_id: str, members: List[str]
-    ) -> Dict[str, Any]:
+    ) -> Group:
         """Remove members from a group.
 
         Args:
@@ -144,13 +211,24 @@ class GroupsModule:
             members: The list of member phone numbers to remove.
 
         Returns:
-            The response containing the member removal information.
+            The updated group without the removed members.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}/members"
         data = {"members": members}
-        return await make_request(self._module_session, "DELETE", url, data=data)
+        response = await make_request(self._module_session, "DELETE", url, data=data)
 
-    async def join_group(self, number: str, group_id: str) -> Dict[str, Any]:
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            group_dict = {str(k): v for k, v in response.items()}
+            # Add the group_id if not in the response
+            if "id" not in group_dict:
+                group_dict["id"] = group_id
+            return Group(**group_dict)
+        else:
+            # Try to create a minimal Group object
+            return Group(id=group_id)
+
+    async def join_group(self, number: str, group_id: str) -> Group:
         """Join a group.
 
         Args:
@@ -158,10 +236,21 @@ class GroupsModule:
             group_id: The group ID.
 
         Returns:
-            The response containing the group join information.
+            The joined group.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}/join"
-        return await make_request(self._module_session, "POST", url)
+        response = await make_request(self._module_session, "POST", url)
+
+        if isinstance(response, dict):
+            # Convert any non-string keys to strings
+            group_dict = {str(k): v for k, v in response.items()}
+            # Add the group_id if not in the response
+            if "id" not in group_dict:
+                group_dict["id"] = group_id
+            return Group(**group_dict)
+        else:
+            # Try to create a minimal Group object
+            return Group(id=group_id)
 
     async def leave_group(self, number: str, group_id: str) -> Dict[str, Any]:
         """Leave a group.
@@ -171,7 +260,7 @@ class GroupsModule:
             group_id: The group ID.
 
         Returns:
-            The response containing the group leave information.
+            A dictionary containing the leave status, typically {"left": true}.
         """
         url = f"{self.base_url}/v1/groups/{number}/{group_id}/leave"
         return await make_request(self._module_session, "POST", url)
