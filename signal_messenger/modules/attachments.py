@@ -1,5 +1,6 @@
 """Attachments module for the Signal Messenger Python API."""
 
+import http
 from typing import Any, BinaryIO, Dict, List, Optional, Union
 
 import aiohttp
@@ -72,7 +73,7 @@ class AttachmentsModule:
         """
         url = f"{self.base_url}/v1/attachments/{number}/{attachment_id}"
         async with self._module_session.get(url) as response:
-            if response.status != 200:
+            if response.status != http.HTTPStatus.OK:
                 # Handle error response
                 error_data = await response.json()
                 error_message = error_data.get("error", "Unknown error")

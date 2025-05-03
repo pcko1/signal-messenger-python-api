@@ -1,5 +1,6 @@
 """Tests for the Stickers module."""
 
+import http
 import io
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -210,7 +211,7 @@ async def test_upload_sticker_pack(stickers_module):
 
     # Create a context manager mock
     context_manager_mock = MagicMock()
-    context_manager_mock.__aenter__.return_value.status = 200
+    context_manager_mock.__aenter__.return_value.status = http.HTTPStatus.OK
     context_manager_mock.__aenter__.return_value.json = AsyncMock(
         return_value=response_data
     )
@@ -270,7 +271,7 @@ async def test_upload_sticker_pack_with_file_objects(stickers_module):
 
     # Create a context manager mock
     context_manager_mock = MagicMock()
-    context_manager_mock.__aenter__.return_value.status = 200
+    context_manager_mock.__aenter__.return_value.status = http.HTTPStatus.OK
     context_manager_mock.__aenter__.return_value.json = AsyncMock(
         return_value=response_data
     )

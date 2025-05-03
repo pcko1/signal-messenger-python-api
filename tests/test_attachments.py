@@ -1,5 +1,6 @@
 """Tests for the Attachments module."""
 
+import http
 import io
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -24,7 +25,7 @@ async def test_upload_attachment(attachments_module):
 
     # Create a context manager mock
     context_manager_mock = MagicMock()
-    context_manager_mock.__aenter__.return_value.status = 200
+    context_manager_mock.__aenter__.return_value.status = http.HTTPStatus.OK
     context_manager_mock.__aenter__.return_value.json = AsyncMock(
         return_value=response_data
     )
@@ -68,7 +69,7 @@ async def test_upload_attachment_with_file_object(attachments_module):
 
     # Create a context manager mock
     context_manager_mock = MagicMock()
-    context_manager_mock.__aenter__.return_value.status = 200
+    context_manager_mock.__aenter__.return_value.status = http.HTTPStatus.OK
     context_manager_mock.__aenter__.return_value.json = AsyncMock(
         return_value=response_data
     )
@@ -112,7 +113,7 @@ async def test_get_attachment(attachments_module):
 
     # Create a context manager mock
     context_manager_mock = MagicMock()
-    context_manager_mock.__aenter__.return_value.status = 200
+    context_manager_mock.__aenter__.return_value.status = http.HTTPStatus.OK
     context_manager_mock.__aenter__.return_value.read = AsyncMock(
         return_value=response_data
     )
@@ -142,7 +143,7 @@ async def test_get_attachment_error(attachments_module):
 
     # Create a context manager mock
     context_manager_mock = MagicMock()
-    context_manager_mock.__aenter__.return_value.status = 404
+    context_manager_mock.__aenter__.return_value.status = http.HTTPStatus.NOT_FOUND
     context_manager_mock.__aenter__.return_value.json = AsyncMock(
         return_value=error_data
     )

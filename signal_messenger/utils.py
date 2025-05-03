@@ -105,7 +105,7 @@ async def make_request(
         if isinstance(e, aiohttp.ClientConnectorError):
             raise SignalConnectionError(f"Connection error: {str(e)}")
         elif isinstance(e, aiohttp.ClientResponseError):
-            if hasattr(e, "status") and e.status == 408:
+            if hasattr(e, "status") and e.status == http.HTTPStatus.REQUEST_TIMEOUT:
                 raise SignalTimeoutError(f"Request timed out: {str(e)}")
             else:
                 raise SignalAPIError(f"Request failed: {str(e)}")
