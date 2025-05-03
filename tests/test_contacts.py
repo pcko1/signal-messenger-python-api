@@ -139,7 +139,7 @@ async def test_get_contact(contacts_module):
         assert isinstance(result, Contact)
         assert result.number == "+0987654321"
         assert result.name == "John Doe"
-        assert result.expiration == "604800"
+        assert result.expiration == 604800  # Changed from "604800" to 604800
         assert result.blocked is False
 
         # Verify the make_request call
