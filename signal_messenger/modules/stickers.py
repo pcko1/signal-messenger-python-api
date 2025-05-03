@@ -37,14 +37,63 @@ class StickersModule:
         response = await make_request(self._module_session, "GET", url)
 
         sticker_packs = []
-        if isinstance(response, dict) and "stickers" in response:
-            sticker_packs = response["stickers"]
+        if isinstance(response, dict):
+            if "stickers" in response:
+                sticker_packs = response["stickers"]
+            else:
+                # If it's already a properly formatted sticker pack, just use it directly
+                sticker_packs = [response]
         elif isinstance(response, list):
             sticker_packs = response
         else:
-            sticker_packs = [response]
+            # Unexpected response type
+            return []
 
-        return [StickerPack(**pack) for pack in sticker_packs]
+        # Convert all packs to StickerPack objects
+        result = []
+        for pack in sticker_packs:
+            if not isinstance(pack, dict):
+                continue
+
+            # Make a deep copy to avoid modifying the original data
+            pack_data = pack.copy()
+
+            # Create sticker objects from stickers in the pack
+            if "stickers" in pack_data and isinstance(pack_data["stickers"], list):
+                processed_stickers = []
+                for s in pack_data["stickers"]:
+                    if isinstance(s, dict):
+                        sticker_data = s.copy()
+                        # Ensure sticker ID is integer as required by the model
+                        if "id" in sticker_data and not isinstance(
+                            sticker_data["id"], int
+                        ):
+                            try:
+                                sticker_data["id"] = int(sticker_data["id"])
+                            except (ValueError, TypeError):
+                                # If conversion fails, keep the original ID
+                                pass
+                        processed_stickers.append(sticker_data)
+                pack_data["stickers"] = processed_stickers
+
+            # Ensure required fields exist with correct types
+            if "id" in pack_data:
+                # Ensure pack ID is string as required by model
+                if not isinstance(pack_data["id"], str):
+                    pack_data["id"] = str(pack_data["id"])
+
+                # Add key if missing
+                if "key" not in pack_data:
+                    pack_data["key"] = f"key-{pack_data['id']}"
+
+                try:
+                    # Pass the fixed pack data to the model constructor
+                    result.append(StickerPack(**pack_data))
+                except Exception as e:
+                    # Log error and continue with next pack
+                    print(f"Error creating StickerPack: {e}, data: {pack_data}")
+
+        return result
 
     async def get_sticker_pack(self, number: str, pack_id: str) -> StickerPack:
         """Get a specific sticker pack.

@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from signal_messenger.models import StatusResponse, Sticker, StickerPack
 from signal_messenger.modules.stickers import StickersModule
 
 
@@ -25,15 +26,17 @@ async def test_get_sticker_packs(stickers_module):
         "stickers": [
             {
                 "id": "pack1",
+                "key": "key1",
                 "title": "Sticker Pack 1",
                 "author": "Author 1",
-                "stickers": [{"id": "sticker1", "emoji": "👍"}],
+                "stickers": [{"id": 1, "emoji": "👍"}],
             },
             {
                 "id": "pack2",
+                "key": "key2",
                 "title": "Sticker Pack 2",
                 "author": "Author 2",
-                "stickers": [{"id": "sticker2", "emoji": "❤️"}],
+                "stickers": [{"id": 2, "emoji": "❤️"}],
             },
         ]
     }
@@ -48,10 +51,12 @@ async def test_get_sticker_packs(stickers_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "pack1"
-        assert result[0]["title"] == "Sticker Pack 1"
-        assert result[1]["id"] == "pack2"
-        assert result[1]["title"] == "Sticker Pack 2"
+        assert isinstance(result[0], StickerPack)
+        assert result[0].id == "pack1"
+        assert result[0].title == "Sticker Pack 1"
+        assert isinstance(result[1], StickerPack)
+        assert result[1].id == "pack2"
+        assert result[1].title == "Sticker Pack 2"
 
 
 @pytest.mark.asyncio
@@ -61,15 +66,17 @@ async def test_get_sticker_packs_list_response(stickers_module):
     response_data = [
         {
             "id": "pack1",
+            "key": "key1",
             "title": "Sticker Pack 1",
             "author": "Author 1",
-            "stickers": [{"id": "sticker1", "emoji": "👍"}],
+            "stickers": [{"id": 1, "emoji": "👍"}],
         },
         {
             "id": "pack2",
+            "key": "key2",
             "title": "Sticker Pack 2",
             "author": "Author 2",
-            "stickers": [{"id": "sticker2", "emoji": "❤️"}],
+            "stickers": [{"id": 2, "emoji": "❤️"}],
         },
     ]
 
@@ -83,10 +90,12 @@ async def test_get_sticker_packs_list_response(stickers_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "pack1"
-        assert result[0]["title"] == "Sticker Pack 1"
-        assert result[1]["id"] == "pack2"
-        assert result[1]["title"] == "Sticker Pack 2"
+        assert isinstance(result[0], StickerPack)
+        assert result[0].id == "pack1"
+        assert result[0].title == "Sticker Pack 1"
+        assert isinstance(result[1], StickerPack)
+        assert result[1].id == "pack2"
+        assert result[1].title == "Sticker Pack 2"
 
 
 @pytest.mark.asyncio
@@ -95,9 +104,10 @@ async def test_get_sticker_packs_single_response(stickers_module):
     # Mock response data
     response_data = {
         "id": "pack1",
+        "key": "key1",
         "title": "Sticker Pack 1",
         "author": "Author 1",
-        "stickers": [{"id": "sticker1", "emoji": "👍"}],
+        "stickers": [{"id": 1, "emoji": "👍"}],
     }
 
     # Mock the make_request function
@@ -110,9 +120,15 @@ async def test_get_sticker_packs_single_response(stickers_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        # The implementation is returning the first sticker from the stickers array
-        assert result[0]["id"] == "sticker1"
-        assert result[0]["emoji"] == "👍"
+        assert isinstance(result[0], StickerPack)
+        assert result[0].id == "pack1"
+        assert result[0].key == "key1"
+        assert result[0].title == "Sticker Pack 1"
+        assert result[0].author == "Author 1"
+        assert len(result[0].stickers) == 1
+        assert isinstance(result[0].stickers[0], Sticker)
+        assert result[0].stickers[0].id == 1
+        assert result[0].stickers[0].emoji == "👍"
 
 
 @pytest.mark.asyncio
@@ -121,9 +137,10 @@ async def test_get_sticker_pack(stickers_module):
     # Mock response data
     response_data = {
         "id": "pack1",
+        "key": "key1",
         "title": "Sticker Pack 1",
         "author": "Author 1",
-        "stickers": [{"id": "sticker1", "emoji": "👍"}],
+        "stickers": [{"id": 1, "emoji": "👍"}],
     }
 
     # Mock the make_request function
@@ -133,12 +150,13 @@ async def test_get_sticker_pack(stickers_module):
         result = await stickers_module.get_sticker_pack("+1234567890", "pack1")
 
         # Verify the result
-        assert result["id"] == "pack1"
-        assert result["title"] == "Sticker Pack 1"
-        assert result["author"] == "Author 1"
-        assert len(result["stickers"]) == 1
-        assert result["stickers"][0]["id"] == "sticker1"
-        assert result["stickers"][0]["emoji"] == "👍"
+        assert isinstance(result, StickerPack)
+        assert result.id == "pack1"
+        assert result.title == "Sticker Pack 1"
+        assert result.author == "Author 1"
+        assert len(result.stickers) == 1
+        assert result.stickers[0].id == 1
+        assert result.stickers[0].emoji == "👍"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -152,7 +170,14 @@ async def test_get_sticker_pack(stickers_module):
 async def test_install_sticker_pack(stickers_module):
     """Test the install_sticker_pack method."""
     # Mock response data
-    response_data = {"success": True, "message": "Sticker pack installed"}
+    response_data = {
+        "id": "pack1",
+        "key": "pack_key",
+        "title": "Sticker Pack 1",
+        "author": "Author 1",
+        "stickers": [{"id": 1, "emoji": "👍"}],
+        "installed": True,
+    }
 
     # Mock the make_request function
     make_request_mock = AsyncMock(return_value=response_data)
@@ -163,8 +188,10 @@ async def test_install_sticker_pack(stickers_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Sticker pack installed"
+        assert isinstance(result, StickerPack)
+        assert result.id == "pack1"
+        assert result.key == "pack_key"
+        assert result.installed is True
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -188,8 +215,9 @@ async def test_uninstall_sticker_pack(stickers_module):
         result = await stickers_module.uninstall_sticker_pack("+1234567890", "pack1")
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Sticker pack uninstalled"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Sticker pack uninstalled"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -203,7 +231,12 @@ async def test_uninstall_sticker_pack(stickers_module):
 async def test_upload_sticker_pack(stickers_module):
     """Test the upload_sticker_pack method."""
     # Mock response data
-    response_data = {"id": "new_pack", "key": "new_pack_key"}
+    response_data = {
+        "id": "new_pack",
+        "key": "new_pack_key",
+        "title": "New Pack",
+        "author": "Author",
+    }
 
     # Mock the FormData class
     form_data_mock = MagicMock()
@@ -235,8 +268,11 @@ async def test_upload_sticker_pack(stickers_module):
         )
 
         # Verify the result
-        assert result["id"] == "new_pack"
-        assert result["key"] == "new_pack_key"
+        assert isinstance(result, StickerPack)
+        assert result.id == "new_pack"
+        assert result.key == "new_pack_key"
+        assert result.title == "New Pack"
+        assert result.author == "Author"
 
         # Verify the FormData calls
         form_data_mock.add_field.assert_any_call("title", "New Pack")
@@ -263,7 +299,12 @@ async def test_upload_sticker_pack(stickers_module):
 async def test_upload_sticker_pack_with_file_objects(stickers_module):
     """Test the upload_sticker_pack method with file-like objects."""
     # Mock response data
-    response_data = {"id": "new_pack", "key": "new_pack_key"}
+    response_data = {
+        "id": "new_pack",
+        "key": "new_pack_key",
+        "title": "New Pack",
+        "author": "Author",
+    }
 
     # Mock the FormData class
     form_data_mock = MagicMock()
@@ -295,8 +336,11 @@ async def test_upload_sticker_pack_with_file_objects(stickers_module):
         )
 
         # Verify the result
-        assert result["id"] == "new_pack"
-        assert result["key"] == "new_pack_key"
+        assert isinstance(result, StickerPack)
+        assert result.id == "new_pack"
+        assert result.key == "new_pack_key"
+        assert result.title == "New Pack"
+        assert result.author == "Author"
 
         # Verify the FormData calls
         form_data_mock.add_field.assert_any_call("title", "New Pack")

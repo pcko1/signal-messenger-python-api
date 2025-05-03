@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from signal_messenger.models import Reaction, StatusResponse
 from signal_messenger.modules.reactions import ReactionsModule
 
 
@@ -30,8 +31,9 @@ async def test_send_reaction(reactions_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["timestamp"] == 1234567890
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.timestamp == 1234567890
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -62,8 +64,9 @@ async def test_send_reaction_remove(reactions_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["timestamp"] == 1234567890
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.timestamp == 1234567890
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -88,18 +91,18 @@ async def test_get_reactions(reactions_module):
             {
                 "id": "reaction1",
                 "emoji": "👍",
-                "sender": "+0987654321",
-                "targetAuthor": "+1234567890",
-                "targetTimestamp": 1234567890,
-                "timestamp": 1234567891,
+                "author": "+0987654321",
+                "target_author": "+1234567890",
+                "timestamp": 1234567890,
+                "received_timestamp": 1234567891,
             },
             {
                 "id": "reaction2",
                 "emoji": "❤️",
-                "sender": "+5555555555",
-                "targetAuthor": "+1234567890",
-                "targetTimestamp": 1234567892,
-                "timestamp": 1234567893,
+                "author": "+5555555555",
+                "target_author": "+1234567890",
+                "timestamp": 1234567892,
+                "received_timestamp": 1234567893,
             },
         ]
     }
@@ -114,10 +117,12 @@ async def test_get_reactions(reactions_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "reaction1"
-        assert result[0]["emoji"] == "👍"
-        assert result[1]["id"] == "reaction2"
-        assert result[1]["emoji"] == "❤️"
+        assert isinstance(result[0], Reaction)
+        assert result[0].emoji == "👍"
+        assert result[0].author == "+0987654321"
+        assert isinstance(result[1], Reaction)
+        assert result[1].emoji == "❤️"
+        assert result[1].author == "+5555555555"
 
 
 @pytest.mark.asyncio
@@ -129,10 +134,10 @@ async def test_get_reactions_with_limit(reactions_module):
             {
                 "id": "reaction1",
                 "emoji": "👍",
-                "sender": "+0987654321",
-                "targetAuthor": "+1234567890",
-                "targetTimestamp": 1234567890,
-                "timestamp": 1234567891,
+                "author": "+0987654321",
+                "target_author": "+1234567890",
+                "timestamp": 1234567890,
+                "received_timestamp": 1234567891,
             }
         ]
     }
@@ -146,8 +151,9 @@ async def test_get_reactions_with_limit(reactions_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["id"] == "reaction1"
-        assert result[0]["emoji"] == "👍"
+        assert isinstance(result[0], Reaction)
+        assert result[0].emoji == "👍"
+        assert result[0].author == "+0987654321"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -166,18 +172,18 @@ async def test_get_reactions_list_response(reactions_module):
         {
             "id": "reaction1",
             "emoji": "👍",
-            "sender": "+0987654321",
-            "targetAuthor": "+1234567890",
-            "targetTimestamp": 1234567890,
-            "timestamp": 1234567891,
+            "author": "+0987654321",
+            "target_author": "+1234567890",
+            "timestamp": 1234567890,
+            "received_timestamp": 1234567891,
         },
         {
             "id": "reaction2",
             "emoji": "❤️",
-            "sender": "+5555555555",
-            "targetAuthor": "+1234567890",
-            "targetTimestamp": 1234567892,
-            "timestamp": 1234567893,
+            "author": "+5555555555",
+            "target_author": "+1234567890",
+            "timestamp": 1234567892,
+            "received_timestamp": 1234567893,
         },
     ]
 
@@ -191,10 +197,12 @@ async def test_get_reactions_list_response(reactions_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "reaction1"
-        assert result[0]["emoji"] == "👍"
-        assert result[1]["id"] == "reaction2"
-        assert result[1]["emoji"] == "❤️"
+        assert isinstance(result[0], Reaction)
+        assert result[0].emoji == "👍"
+        assert result[0].author == "+0987654321"
+        assert isinstance(result[1], Reaction)
+        assert result[1].emoji == "❤️"
+        assert result[1].author == "+5555555555"
 
 
 @pytest.mark.asyncio
@@ -204,10 +212,10 @@ async def test_get_reactions_single_response(reactions_module):
     response_data = {
         "id": "reaction1",
         "emoji": "👍",
-        "sender": "+0987654321",
-        "targetAuthor": "+1234567890",
-        "targetTimestamp": 1234567890,
-        "timestamp": 1234567891,
+        "author": "+0987654321",
+        "target_author": "+1234567890",
+        "timestamp": 1234567890,
+        "received_timestamp": 1234567891,
     }
 
     # Mock the make_request function
@@ -220,8 +228,9 @@ async def test_get_reactions_single_response(reactions_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["id"] == "reaction1"
-        assert result[0]["emoji"] == "👍"
+        assert isinstance(result[0], Reaction)
+        assert result[0].emoji == "👍"
+        assert result[0].author == "+0987654321"
 
 
 @pytest.mark.asyncio
@@ -233,18 +242,18 @@ async def test_get_message_reactions(reactions_module):
             {
                 "id": "reaction1",
                 "emoji": "👍",
-                "sender": "+0987654321",
-                "targetAuthor": "+1234567890",
-                "targetTimestamp": 1234567890,
-                "timestamp": 1234567891,
+                "author": "+0987654321",
+                "target_author": "+1234567890",
+                "timestamp": 1234567890,
+                "received_timestamp": 1234567891,
             },
             {
                 "id": "reaction2",
                 "emoji": "❤️",
-                "sender": "+5555555555",
-                "targetAuthor": "+1234567890",
-                "targetTimestamp": 1234567890,
-                "timestamp": 1234567893,
+                "author": "+5555555555",
+                "target_author": "+1234567890",
+                "timestamp": 1234567892,
+                "received_timestamp": 1234567893,
             },
         ]
     }
@@ -258,10 +267,12 @@ async def test_get_message_reactions(reactions_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "reaction1"
-        assert result[0]["emoji"] == "👍"
-        assert result[1]["id"] == "reaction2"
-        assert result[1]["emoji"] == "❤️"
+        assert isinstance(result[0], Reaction)
+        assert result[0].emoji == "👍"
+        assert result[0].author == "+0987654321"
+        assert isinstance(result[1], Reaction)
+        assert result[1].emoji == "❤️"
+        assert result[1].author == "+5555555555"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -284,8 +295,9 @@ async def test_delete_reaction(reactions_module):
         result = await reactions_module.delete_reaction("+1234567890", "reaction1")
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Reaction deleted"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Reaction deleted"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
