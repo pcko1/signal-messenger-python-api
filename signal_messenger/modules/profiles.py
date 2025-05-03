@@ -76,9 +76,7 @@ class ProfilesModule:
         if avatar is not None:
             data["avatar"] = avatar
         if emoji is not None:
-            data["about_emoji"] = (
-                emoji  # Assuming emoji maps to about_emoji in the model
-            )
+            data["emoji"] = emoji  # Use emoji in the API request
 
         response = await make_request(self._module_session, "PUT", url, data=data)
 

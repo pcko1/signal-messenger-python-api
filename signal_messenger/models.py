@@ -7,7 +7,15 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 
-class LoggingConfig(BaseModel):
+class BaseModelWithDictAccess(BaseModel):
+    """Base model with dictionary-style access for backward compatibility."""
+
+    def __getitem__(self, key):
+        """Allow dictionary-style access to model attributes."""
+        return getattr(self, key)
+
+
+class LoggingConfig(BaseModelWithDictAccess):
     """Logging configuration model."""
 
     level: str = ""
@@ -23,7 +31,7 @@ class LoggingConfig(BaseModel):
             self.level = self.Level
 
 
-class Configuration(BaseModel):
+class Configuration(BaseModelWithDictAccess):
     """API configuration model."""
 
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
@@ -39,13 +47,13 @@ class Configuration(BaseModel):
             self.logging = self.Logging
 
 
-class Capabilities(BaseModel):
+class Capabilities(BaseModelWithDictAccess):
     """API capabilities model."""
 
     model_config = ConfigDict(extra="allow")
 
 
-class About(BaseModel):
+class About(BaseModelWithDictAccess):
     """API information model."""
 
     build: int
@@ -55,14 +63,14 @@ class About(BaseModel):
     versions: List[str]
 
 
-class AccountSettings(BaseModel):
+class AccountSettings(BaseModelWithDictAccess):
     """Account settings model."""
 
     trust_mode: str
 
 
 # Account Models
-class AccountRegistrationResponse(BaseModel):
+class AccountRegistrationResponse(BaseModelWithDictAccess):
     """Account registration response model."""
 
     model_config = ConfigDict(extra="allow")
@@ -71,7 +79,7 @@ class AccountRegistrationResponse(BaseModel):
     verification_required: Optional[bool] = None
 
 
-class AccountVerificationResponse(BaseModel):
+class AccountVerificationResponse(BaseModelWithDictAccess):
     """Account verification response model."""
 
     model_config = ConfigDict(extra="allow")
@@ -81,7 +89,7 @@ class AccountVerificationResponse(BaseModel):
     registered: Optional[bool] = None
 
 
-class AccountDetails(BaseModel):
+class AccountDetails(BaseModelWithDictAccess):
     """Account details model."""
 
     model_config = ConfigDict(extra="allow")
@@ -100,7 +108,7 @@ class DeviceType(str, Enum):
     UNKNOWN = "unknown"
 
 
-class Device(BaseModel):
+class Device(BaseModelWithDictAccess):
     """Device model."""
 
     model_config = ConfigDict(extra="allow")
@@ -127,7 +135,7 @@ class MessageType(str, Enum):
     SYNC = "sync"
 
 
-class MessageAttachment(BaseModel):
+class MessageAttachment(BaseModelWithDictAccess):
     """Message attachment model."""
 
     model_config = ConfigDict(extra="allow")
@@ -138,7 +146,7 @@ class MessageAttachment(BaseModel):
     size: Optional[int] = None
 
 
-class MessageMention(BaseModel):
+class MessageMention(BaseModelWithDictAccess):
     """Message mention model."""
 
     model_config = ConfigDict(extra="allow")
@@ -148,7 +156,7 @@ class MessageMention(BaseModel):
     length: int
 
 
-class MessageQuote(BaseModel):
+class MessageQuote(BaseModelWithDictAccess):
     """Message quote model."""
 
     model_config = ConfigDict(extra="allow")
@@ -159,7 +167,7 @@ class MessageQuote(BaseModel):
     attachments: List[MessageAttachment] = Field(default_factory=list)
 
 
-class Message(BaseModel):
+class Message(BaseModelWithDictAccess):
     """Message model."""
 
     model_config = ConfigDict(extra="allow")
@@ -194,7 +202,7 @@ class GroupRole(str, Enum):
     DEFAULT = "DEFAULT"
 
 
-class GroupMember(BaseModel):
+class GroupMember(BaseModelWithDictAccess):
     """Group member model."""
 
     model_config = ConfigDict(extra="allow")
@@ -204,7 +212,7 @@ class GroupMember(BaseModel):
     role: Optional[GroupRole] = GroupRole.DEFAULT
 
 
-class GroupInfo(BaseModel):
+class GroupInfo(BaseModelWithDictAccess):
     """Group info model."""
 
     model_config = ConfigDict(extra="allow")
@@ -225,20 +233,20 @@ class GroupInfo(BaseModel):
     message_expiration_time: Optional[int] = None
 
 
-class Group(BaseModel):
+class Group(BaseModelWithDictAccess):
     """Group model."""
 
     model_config = ConfigDict(extra="allow")
 
-    id: str
+    id: Optional[str] = None
     internal_id: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
     avatar: Optional[str] = None
-    members: List[GroupMember] = Field(default_factory=list)
-    pending_members: List[GroupMember] = Field(default_factory=list)
-    requesting_members: List[GroupMember] = Field(default_factory=list)
-    admins: List[GroupMember] = Field(default_factory=list)
+    members: List[Union[GroupMember, str]] = Field(default_factory=list)
+    pending_members: List[Union[GroupMember, str]] = Field(default_factory=list)
+    requesting_members: List[Union[GroupMember, str]] = Field(default_factory=list)
+    admins: List[Union[GroupMember, str]] = Field(default_factory=list)
     active: Optional[bool] = None
     blocked: Optional[bool] = None
     permission_add_member: Optional[str] = None
@@ -247,9 +255,49 @@ class Group(BaseModel):
     link: Optional[str] = None
     message_expiration_time: Optional[int] = None
 
+    # For backward compatibility
+    success: Optional[bool] = None
+    message: Optional[str] = None
+    groupId: Optional[str] = None
+
+    def __init__(self, **data):
+        """Initialize the group model.
+
+        This handles converting string members to GroupMember objects and mapping fields.
+        """
+        # Map groupId to id if id is not present
+        if "groupId" in data and "id" not in data:
+            data["id"] = data["groupId"]
+
+        # Convert string members to GroupMember objects
+        for field in ["members", "pending_members", "requesting_members", "admins"]:
+            if field in data and isinstance(data[field], list):
+                processed_members = []
+                for member in data[field]:
+                    if isinstance(member, str):
+                        processed_members.append(GroupMember(number=member))
+                    else:
+                        processed_members.append(member)
+                data[field] = processed_members
+
+        super().__init__(**data)
+
+    def __getitem__(self, key):
+        """Allow dictionary-style access to model attributes with special handling for members."""
+        if key == "members" and hasattr(self, "members"):
+            # For backward compatibility, return the original string members if requested
+            result = []
+            for m in self.members:
+                if isinstance(m, GroupMember) and m.number:
+                    result.append(m.number)
+                elif isinstance(m, str):
+                    result.append(m)
+            return result
+        return super().__getitem__(key)
+
 
 # Attachment Models
-class Attachment(BaseModel):
+class Attachment(BaseModelWithDictAccess):
     """Attachment model."""
 
     model_config = ConfigDict(extra="allow")
@@ -267,7 +315,7 @@ class Attachment(BaseModel):
 
 
 # Profile Models
-class Profile(BaseModel):
+class Profile(BaseModelWithDictAccess):
     """Profile model."""
 
     model_config = ConfigDict(extra="allow")
@@ -292,9 +340,10 @@ class TrustLevel(str, Enum):
     TRUSTED_UNVERIFIED = "TRUSTED_UNVERIFIED"
     TRUSTED_VERIFIED = "TRUSTED_VERIFIED"
     UNTRUSTED = "UNTRUSTED"
+    TRUSTED = "TRUSTED"  # For backward compatibility
 
 
-class Identity(BaseModel):
+class Identity(BaseModelWithDictAccess):
     """Identity model."""
 
     model_config = ConfigDict(extra="allow")
@@ -309,7 +358,7 @@ class Identity(BaseModel):
 
 
 # Reaction Models
-class Reaction(BaseModel):
+class Reaction(BaseModelWithDictAccess):
     """Reaction model."""
 
     model_config = ConfigDict(extra="allow")
@@ -332,7 +381,7 @@ class ReceiptType(str, Enum):
     DELIVERY = "delivery"
 
 
-class Receipt(BaseModel):
+class Receipt(BaseModelWithDictAccess):
     """Receipt model."""
 
     model_config = ConfigDict(extra="allow")
@@ -346,7 +395,7 @@ class Receipt(BaseModel):
 
 
 # Search Models
-class SearchResult(BaseModel):
+class SearchResult(BaseModelWithDictAccess):
     """Search result model."""
 
     model_config = ConfigDict(extra="allow")
@@ -356,7 +405,7 @@ class SearchResult(BaseModel):
 
 
 # Sticker Models
-class Sticker(BaseModel):
+class Sticker(BaseModelWithDictAccess):
     """Sticker model."""
 
     model_config = ConfigDict(extra="allow")
@@ -368,7 +417,7 @@ class Sticker(BaseModel):
     attachment: Optional[Attachment] = None
 
 
-class StickerPack(BaseModel):
+class StickerPack(BaseModelWithDictAccess):
     """Sticker pack model."""
 
     model_config = ConfigDict(extra="allow")
@@ -383,7 +432,7 @@ class StickerPack(BaseModel):
 
 
 # Contact Models
-class Contact(BaseModel):
+class Contact(BaseModelWithDictAccess):
     """Contact model."""
 
     model_config = ConfigDict(extra="allow")
