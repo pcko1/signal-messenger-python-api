@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from signal_messenger.models import Receipt, ReceiptType, StatusResponse
 from signal_messenger.modules.receipts import ReceiptsModule
 
 
@@ -23,14 +24,14 @@ async def test_get_receipts(receipts_module):
         "receipts": [
             {
                 "id": "receipt1",
-                "type": "READ",
+                "type": "read",
                 "sender": "+0987654321",
                 "timestamp": 1234567890,
                 "targetTimestamp": 1234567889,
             },
             {
                 "id": "receipt2",
-                "type": "DELIVERY",
+                "type": "delivery",
                 "sender": "+5555555555",
                 "timestamp": 1234567891,
                 "targetTimestamp": 1234567889,
@@ -48,10 +49,12 @@ async def test_get_receipts(receipts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "receipt1"
-        assert result[0]["type"] == "READ"
-        assert result[1]["id"] == "receipt2"
-        assert result[1]["type"] == "DELIVERY"
+        assert isinstance(result[0], Receipt)
+        assert result[0].type == ReceiptType.READ
+        assert result[0].sender == "+0987654321"
+        assert isinstance(result[1], Receipt)
+        assert result[1].type == ReceiptType.DELIVERY
+        assert result[1].sender == "+5555555555"
 
 
 @pytest.mark.asyncio
@@ -62,7 +65,7 @@ async def test_get_receipts_with_limit(receipts_module):
         "receipts": [
             {
                 "id": "receipt1",
-                "type": "READ",
+                "type": "read",
                 "sender": "+0987654321",
                 "timestamp": 1234567890,
                 "targetTimestamp": 1234567889,
@@ -79,8 +82,9 @@ async def test_get_receipts_with_limit(receipts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["id"] == "receipt1"
-        assert result[0]["type"] == "READ"
+        assert isinstance(result[0], Receipt)
+        assert result[0].type == ReceiptType.READ
+        assert result[0].sender == "+0987654321"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -98,14 +102,14 @@ async def test_get_receipts_list_response(receipts_module):
     response_data = [
         {
             "id": "receipt1",
-            "type": "READ",
+            "type": "read",
             "sender": "+0987654321",
             "timestamp": 1234567890,
             "targetTimestamp": 1234567889,
         },
         {
             "id": "receipt2",
-            "type": "DELIVERY",
+            "type": "delivery",
             "sender": "+5555555555",
             "timestamp": 1234567891,
             "targetTimestamp": 1234567889,
@@ -122,10 +126,12 @@ async def test_get_receipts_list_response(receipts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "receipt1"
-        assert result[0]["type"] == "READ"
-        assert result[1]["id"] == "receipt2"
-        assert result[1]["type"] == "DELIVERY"
+        assert isinstance(result[0], Receipt)
+        assert result[0].type == ReceiptType.READ
+        assert result[0].sender == "+0987654321"
+        assert isinstance(result[1], Receipt)
+        assert result[1].type == ReceiptType.DELIVERY
+        assert result[1].sender == "+5555555555"
 
 
 @pytest.mark.asyncio
@@ -134,7 +140,7 @@ async def test_get_receipts_single_response(receipts_module):
     # Mock response data
     response_data = {
         "id": "receipt1",
-        "type": "READ",
+        "type": "read",
         "sender": "+0987654321",
         "timestamp": 1234567890,
         "targetTimestamp": 1234567889,
@@ -150,8 +156,9 @@ async def test_get_receipts_single_response(receipts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 1
-        assert result[0]["id"] == "receipt1"
-        assert result[0]["type"] == "READ"
+        assert isinstance(result[0], Receipt)
+        assert result[0].type == ReceiptType.READ
+        assert result[0].sender == "+0987654321"
 
 
 @pytest.mark.asyncio
@@ -162,14 +169,14 @@ async def test_get_message_receipts(receipts_module):
         "receipts": [
             {
                 "id": "receipt1",
-                "type": "READ",
+                "type": "read",
                 "sender": "+0987654321",
                 "timestamp": 1234567890,
                 "targetTimestamp": 1234567889,
             },
             {
                 "id": "receipt2",
-                "type": "DELIVERY",
+                "type": "delivery",
                 "sender": "+5555555555",
                 "timestamp": 1234567891,
                 "targetTimestamp": 1234567889,
@@ -186,10 +193,12 @@ async def test_get_message_receipts(receipts_module):
         # Verify the result
         assert isinstance(result, list)
         assert len(result) == 2
-        assert result[0]["id"] == "receipt1"
-        assert result[0]["type"] == "READ"
-        assert result[1]["id"] == "receipt2"
-        assert result[1]["type"] == "DELIVERY"
+        assert isinstance(result[0], Receipt)
+        assert result[0].type == ReceiptType.READ
+        assert result[0].sender == "+0987654321"
+        assert isinstance(result[1], Receipt)
+        assert result[1].type == ReceiptType.DELIVERY
+        assert result[1].sender == "+5555555555"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -214,8 +223,9 @@ async def test_send_read_receipt(receipts_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Read receipt sent"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Read receipt sent"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -241,8 +251,9 @@ async def test_send_viewed_receipt(receipts_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Viewed receipt sent"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Viewed receipt sent"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
@@ -268,8 +279,9 @@ async def test_send_delivery_receipt(receipts_module):
         )
 
         # Verify the result
-        assert result["success"] is True
-        assert result["message"] == "Delivery receipt sent"
+        assert isinstance(result, StatusResponse)
+        assert result.success is True
+        assert result.message == "Delivery receipt sent"
 
         # Verify the make_request call
         make_request_mock.assert_called_once_with(
