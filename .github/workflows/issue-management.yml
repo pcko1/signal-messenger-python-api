@@ -1,0 +1,29 @@
+name: Issue and PR Management
+
+on:
+  issues:
+    types: [opened, reopened, labeled, unlabeled]
+  pull_request:
+    types: [opened, reopened, labeled, unlabeled]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/labeler@v4
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        configuration-path: .github/labeler.yml
+        
+    - name: Add stale check
+      uses: actions/stale@v8
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        stale-issue-message: 'This issue has been automatically marked as stale due to inactivity. It will be closed if no further activity occurs.'
+        stale-pr-message: 'This PR has been automatically marked as stale due to inactivity. It will be closed if no further activity occurs.'
+        stale-issue-label: 'stale'
+        stale-pr-label: 'stale'
+        days-before-stale: 60
+        days-before-close: 7
+        exempt-issue-labels: 'bug,enhancement,documentation,good first issue'
+        exempt-pr-labels: 'work in progress'

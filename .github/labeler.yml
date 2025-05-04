@@ -1,0 +1,27 @@
+# Configuration for GitHub labeler
+# Add 'documentation' label to any changes to markdown files or wiki
+documentation:
+  - '**/*.md'
+  - 'wiki/**/*'
+
+# Add 'core' label to any changes to core modules
+core:
+  - 'signal_messenger/*.py'
+  - 'signal_messenger/__init__.py'
+
+# Add 'module' label to any changes in the modules directory
+module:
+  - 'signal_messenger/modules/**/*'
+
+# Add 'test' label to any change to test files
+test:
+  - 'tests/**/*'
+
+# Add 'ci' label to any change to GitHub workflow files
+ci:
+  - '.github/**/*'
+
+# Add 'dependencies' label to any change in requirements or setup files
+dependencies:
+  - 'requirements.txt'
+  - 'setup.py'
