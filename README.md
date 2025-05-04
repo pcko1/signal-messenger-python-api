@@ -1,5 +1,7 @@
 # Signal Messenger Python API
 
+> **Disclaimer:** This project was generated with the assistance of Claude 3.7 Sonnet based on the Signal CLI REST API [Swagger documentation](https://bbernhard.github.io/signal-cli-rest-api/src/docs/swagger.json).
+
 <p align="center">
   <img src="assets/logo.png" width="200" alt="Signal Messenger Python API Logo">
 </p>
