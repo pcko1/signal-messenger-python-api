@@ -155,45 +155,6 @@ async def main():
 asyncio.run(main())
 ```
 
-### Using Environment Variables
-
-You can use environment variables to store sensitive information like your phone number. Create a `.env` file in the root directory of your project:
-
-```
-# .env
-SIGNAL_PHONE_NUMBER="+1234567890"
-SIGNAL_API_URL="http://localhost:9922"
-SIGNAL_VERIFICATION_TOKEN="123456"
-SIGNAL_DEVICE_NAME="My Device"
-```
-
-Then use the `python-dotenv` package to load these variables:
-
-```python
-import asyncio
-import os
-from dotenv import load_dotenv
-from signal_messenger import SignalClient
-
-# Load environment variables
-load_dotenv()
-
-async def main():
-    # Get API URL from environment variable
-    api_url = os.getenv("SIGNAL_API_URL", "http://localhost:9922")
-    phone_number = os.getenv("SIGNAL_PHONE_NUMBER")
-    
-    async with SignalClient(api_url) as client:
-        await client._init_modules()
-        
-        # Use phone number from environment variable
-        if phone_number:
-            devices = await client.get_linked_devices(phone_number)
-            print(f"Linked Devices: {devices}")
-
-asyncio.run(main())
-```
-
 ## Development
 
 ### Setup
