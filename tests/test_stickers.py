@@ -43,8 +43,6 @@ async def test_get_sticker_packs(stickers_module):
 
     # Create a mock that prints the response data when called
     async def mock_make_request(*args, **kwargs):
-        print(f"Mock make_request called with args: {args}, kwargs: {kwargs}")
-        print(f"Returning response data: {response_data}")
         return response_data
 
     # Mock the make_request function
@@ -53,9 +51,6 @@ async def test_get_sticker_packs(stickers_module):
     ):
         # Call the method
         result = await stickers_module.get_sticker_packs("+1234567890")
-
-        # Print the result for debugging
-        print(f"Result: {result}")
 
         # Verify the result
         assert isinstance(result, list)
